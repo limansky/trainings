@@ -1,0 +1,175 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+
+\usepackage{color}
+\definecolor{sh_comment}{rgb}{0.12, 0.38, 0.18 } %adjusted, in Eclipse: {0.25, 0.42, 0.30 } = #3F6A4D
+\definecolor{sh_keyword}{rgb}{0.37, 0.08, 0.25}  % #5F1441
+\definecolor{sh_string}{rgb}{0.06, 0.10, 0.98} % #101AF9
+
+\usepackage[lighttt]{lmodern}
+
+\usepackage{hyperref}
+\usepackage{listings}
+
+% "define" Scala
+\lstdefinelanguage{Scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+\lstset{
+  language=Scala,
+  rulesepcolor=\color{black},
+  rulesepcolor=\color{black},
+  showspaces=false,showtabs=false,tabsize=2,showstringspaces=false,
+  numberstyle=\tiny,numbers=left,
+  basicstyle=\ttfamily\tiny,
+  stringstyle=\color{sh_string},
+  keywordstyle=\color{sh_keyword}\bfseries,
+  commentstyle=\color{sh_comment}, % \itshape,
+  captionpos=b,
+  xleftmargin=0.7cm, xrightmargin=0.5cm,
+  lineskip=-0.3em,
+  escapebegin={\lstsmallmath}, escapeend={\lstsmallmathend}
+}
+
+\def\linline{\lstinline[basicstyle=\ttfamily]}
+
+\usepackage{tikz}
+\usepackage{tikz-uml}
+
+\title{Futures, promises and some fun}
+\subtitle{in Scala and C++}
+
+\author{Mikhail Limanskiy}
+
+\institute{SymphonyTeleca}
+
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Why futures?}
+Futures is a modern way for parallel computations.
+\begin{itemize}
+\item Futures easier to use than manual thread managing.
+\item Code is easier to understand, since futures wraps values.
+\item Futures are available in most of the modern languages (C++11, Java 7, Scala 2.10, Python 3.2).
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Futures}
+Future is an object holding a value which may become available later.  Future can have one of three states:
+\begin{itemize}
+\item Not yet completed
+\item Completed successfully
+\item Computation was failed
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Future class}
+\linline{Future} instances can be created using \linline{future} construct. 
+To use futures you need to have an instance of \linline{ExecutionContext}. You can just import global one.
+Future has several callbacks:
+\begin{lstlisting}
+trait Future[+T] extends Awaitable[T] {
+  onComplete[U](func: (Try[T]) => U): Unit
+  onSuccess[U](pf: PartialFunction[T, U]): Unit
+  onFailure[U](pf: PartialFunction[Throwable, U]): Unit
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example}
+\begin{lstlisting}
+import scala.io.Source
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Success, Failure}
+
+object Fetcher extends App {
+  def getPage(url: String): Future[String] = {
+    future {
+      Source.fromURL(url).mkString
+    }
+  }
+
+  args.foreach { url =>
+    val f = getPage(url)
+
+    f onComplete {
+      case Success(p) => println(url + ": " + p.take(200))
+      case Failure(_) => println("Failed to get content from " + url)
+    }
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Fetcher example in C++ 11}
+\begin{lstlisting}[language=C++]
+#include <future>
+#include <iostream>
+#include <vector>
+#include <curl/curl.h>
+
+using namespace std;
+using CurlWriter = size_t(*)(char*, size_t, size_t, string*);
+
+string getPage(const char* url) {
+    CURL* curl = curl_easy_init();
+    string result;
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, static_cast<CurlWriter>(
+        [](char* buf, size_t s, size_t n, string* r) {
+            r->append(buf);
+            return s * n;
+        }));
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+    curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+    return result;
+}
+int main(int argc, char* argv[]) {
+    vector<pair<const char*, future<string>>> results;
+    for (int i = 0; i < argc; ++i)
+        results.push_back(make_pair(argv[i], async(getPage, argv[i])));
+    for(auto& r : results)
+        cout << r.first << ": " << r.second.get().substr(0, 200) << "\n";
+    return 0;
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Futures composition}
+\linline{Future} is a monad. You can use \linline{map}, \linline{flatMap}, \linline{filter}, etc to
+compose \linline{Future}s together. You can also use for-comprehensions.
+\end{frame}
+
+\begin{frame}
+\frametitle{Promises}
+\end{frame}
+
+\end{document}

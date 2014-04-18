@@ -1,0 +1,256 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+
+\usepackage{color}
+\definecolor{sh_comment}{rgb}{0.12, 0.38, 0.18 } %adjusted, in Eclipse: {0.25, 0.42, 0.30 } = #3F6A4D
+\definecolor{sh_keyword}{rgb}{0.37, 0.08, 0.25}  % #5F1441
+\definecolor{sh_string}{rgb}{0.06, 0.10, 0.98} % #101AF9
+
+\usepackage[lighttt]{lmodern}
+
+\usepackage{hyperref}
+\usepackage{listings}
+
+% "define" Scala
+\lstdefinelanguage{Scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+\lstset{
+  language=Scala,
+  rulesepcolor=\color{black},
+  rulesepcolor=\color{black},
+  showspaces=false,showtabs=false,tabsize=2,showstringspaces=false,
+  numberstyle=\tiny,numbers=left,
+  basicstyle=\ttfamily\tiny,
+  stringstyle=\color{sh_string}, 
+  keywordstyle=\color{sh_keyword}\bfseries,
+  commentstyle=\color{sh_comment}, %\itshape
+  captionpos=b,
+  xleftmargin=0.7cm, xrightmargin=0.5cm,
+  lineskip=-0.3em,
+  escapebegin={\lstsmallmath}, escapeend={\lstsmallmathend}
+}
+
+\def\linline{\lstinline[basicstyle=\ttfamily]}
+
+\usepackage{tikz}
+\usepackage{tikz-uml}
+
+\title{Advanced Scala programming}
+\subtitle{extractors, reflection, macros, parsers}
+
+\author{Mikhail Limanskiy}
+
+\institute{SymphonyTeleca}
+
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\section{Extractors}
+
+\begin{frame}[fragile]
+\frametitle{Recap: pattern matching}
+Pattern matching is a Scala feature similar to switch/case operator, but allows you to match
+using much more complex rules:
+\begin{example}
+\begin{lstlisting}
+val l = List(1, 8, 4,  2, 5, 12)
+l.sorted find (_ > 3) match {
+  case Some(x) => println("$x is a smallest value greater than 3 in the list")
+  case None    => println("There are no values greater than 3")
+}
+
+def getSecond(l: List[A]): Option[A] = l match {
+  case _::x::_ => Some(x)
+  case _       => None
+}
+\end{lstlisting}
+\end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Case classes}
+You can match on any classes, but using \linline{case class}es allows you to match on constructors.
+Also, when you define case class:
+\begin{itemize}
+\item creates factory method with a same name (you can create instances without using new)
+\item creates values for each constructor parameter
+\end{itemize}
+\begin{example}
+\begin{lstlisting}
+sealed abstract class Result[T]
+case class Success[T](value: T) extends Result
+case class Error(message: String) extends Result
+
+def divide(x: Int, y: Int) = 
+  if (y == 0) Error("Division by 0") else Success(x / y)
+
+divide(25, 7) match {
+  case Success(r) => println("Result is $r")
+  case Failure(m) => println(m)
+}
+\end{lstlisting}
+\end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Extractors}
+
+Extractors allows you to use pattern matching without case classes. Extractor is an object with
+method \linline{unapply}.
+
+\begin{example}
+\begin{lstlisting}
+import scala.util.Try
+
+object Twice {
+  def apply(x: Int) = x * 2
+  def unapply(z: Int) = if (z % 2 == 0) Some(z / 2) else None
+}
+
+object AsInt {
+  def unapply(s: String) = Try(s.toInt).toOption
+}
+
+def printHalf(x: Int) = x match {
+  case Twice(y) => println(s"$x is two times $y")
+  case _        => println("x is odd")
+}
+
+def foo(s: String) = s match {
+  case AsInt(Twice(y)) => println("The half is " + y)
+  case _               => println("Wrong input")
+}
+\end{lstlisting}
+\end{example}
+\end{frame}
+
+\section{Parsers}
+
+\begin{frame}[fragile]
+\frametitle{Combinatoric parsers}
+Combinatoric parsers is the easy way to build complex parsers from the small parsers blocks.
+Main combinators are:
+\begin{itemize}
+\item \linline{~} -- sequential composition
+\item \linline{|} -- alternative composition
+\item \linline{~>} and \linline{<~} -- sequence ignoring right or left value.
+\item \linline{rep} or \linline{*} -- repeat parser
+\item \linline{rep1} or \linline{+} -- repeat at least once
+\item \linline{opt} or \linline{?} -- optional parser
+\item \linline{repsep} -- repeated parser with separator
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Parsing CSV example}
+\begin{lstlisting}
+import scala.util.parsing.combinator.RegexParsers
+import scala.io.Source
+
+abstract class Cell
+case class NumCell(number: Double) extends Cell
+case class StringCell(string: String) extends Cell
+
+trait CSVParser extends RegexParsers {
+  override def skipWhitespace = false
+  def lf = "\n"
+  def space = "[ \t]*".r
+
+  def number: Parser[NumCell] = 
+    space ~> """-?\d+(\.\d*)?""".r <~ space ^^ { x => NumCell(x.toDouble) }
+  
+  def string: Parser[StringCell] = """[^,\n]*""".r ^^ { StringCell }
+
+  def cell: Parser[Cell] = number | string
+  def line: Parser[List[Cell]] = repsep(cell, ",") <~ lf
+  def file: Parser[List[List[Cell]]] = rep(line)
+}
+
+object FileParser extends App with CSVParser {
+
+  val str = Source.fromFile(args.head).mkString
+  parseAll(file, str) match {
+    case Success(result, _) => result foreach (l => println(l.mkString("\t")))
+    case fail: NoSuccess    => println("Parsing failed" + fail.msg)
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\section{Reflection}
+
+\begin{frame}[fragile]
+\frametitle{Java\texttrademark generics limitations}
+
+In Java all generic type information is removed in compile time \cite{erasure}.  As result, there no type info for
+parametrized types in JVM.  As result you cannot use type parameters for type checks or instantiation:
+
+\begin{lstlisting}[language=Java]
+public <E> void append(List<E> list, Class<E> cls) throws Exception {
+//  E elem = new E(); // will not compile
+    E elem = cls.newInstance();   // OK
+    list.add(elem);
+}
+
+public <T extends Foo> T getByType(List<Foo> foos, Class<T> clazz) {
+    List<T> result = new ArrayList<>();
+    for (Foo foo : foos) {
+//      if (foo instanceOf T) result.add(foo);  // will not compile
+        if (clazz.instanceOf(foo)) result.add(foo);
+    }
+    return result;
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type erasure affects Scala}
+This code will compile with warning, but not work:
+\begin{lstlisting}
+class Base()
+class Child1() extends Base
+class Child2() extends Base
+
+def foo(item: Option[Base]) = item match {
+  case Some(Child1) => println("child1")
+  case Some(Child2) => println("child2")
+  case None         => println("none")
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Bibliography}
+\begin{thebibliography}{00}
+\bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
+\emph{Programming in Scala},
+Artima, 2nd edition, 2011
+\bibitem{erasure}Java\texttrademark  Tutorials: \emph{Type erasure}, \url{http://docs.oracle.com/javase/tutorial/java/generics/erasure.html}
+\end{thebibliography}
+\end{frame}
+
+\begin{frame}{The end}
+\centering
+\textbf{That's all folks!}
+\end{frame}
+
+\end{document}

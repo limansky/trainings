@@ -1,0 +1,568 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+
+\usepackage{color}
+\definecolor{sh_comment}{rgb}{0.12, 0.38, 0.18 } %adjusted, in Eclipse: {0.25, 0.42, 0.30 } = #3F6A4D
+\definecolor{sh_keyword}{rgb}{0.37, 0.08, 0.25}  % #5F1441
+\definecolor{sh_string}{rgb}{0.06, 0.10, 0.98} % #101AF9
+
+\usepackage{courier}
+\usepackage{lmodern}
+
+\usepackage{hyperref}
+\usepackage{listings}
+
+% "define" Scala
+\lstdefinelanguage{Scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+\lstset{
+  language=Scala,
+  rulesepcolor=\color{black},
+  rulesepcolor=\color{black},
+  showspaces=false,showtabs=false,tabsize=2,showstringspaces=false,
+  numberstyle=\tiny,numbers=left,
+  basicstyle=\ttfamily\tiny,
+  stringstyle=\color{sh_string},
+  keywordstyle=\color{sh_keyword}\bfseries,
+  commentstyle=\color{sh_comment}\itshape,
+  captionpos=b,
+  xleftmargin=0.7cm, xrightmargin=0.5cm,
+  lineskip=-0.3em,
+  escapebegin={\lstsmallmath}, escapeend={\lstsmallmathend}
+}
+
+\def\linline{\lstinline[basicstyle=\ttfamily]}
+
+\usepackage{tikz}
+\usepackage{tikz-uml}
+
+\title{Introduction to Scala}
+
+\author{Mikhail Limanskiy}
+
+\institute{SymphonyTeleca}
+
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\section{Why Scala}
+
+\begin{frame}{About}
+
+\begin{itemize}
+  \item Scala = SCAlable + LAnguage
+
+  \item Scala is an object-functional programming and scripting language for general software applications, statically typed, designed to concisely express solutions in an elegant, type-safe and lightweight (low ceremonial) manner.
+
+  \item Scala compiles into Java byte code and runs on JVM. It compatible with existing Java libraries (but of course you should prefer use native Scala libraries).
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{History}
+
+\begin{itemize}
+  \item 2001 - The design of Scala started at the École Polytechnique Fédérale de Lausanne (EPFL) by Martin Odersky.
+  \item 2003 - First release.
+  \item 2006 - Scala 2.0 release.
+  \item 2010 - Scala 2.8 release. New collection framework.
+  \item 2013 - Scala 2.10 release. Futures and promises. Akka actors now main actors implementation.
+\end{itemize}
+\end{frame}
+
+\section{Syntax}
+
+\begin{frame}[fragile]
+\frametitle{Hello world!}
+
+\begin{lstlisting}
+import scala.util.Random
+
+object Hello extends App {
+  println("Hello, world!")
+
+  if (Random.nextDouble > 0.5) println("I'm so happy")
+
+  for (i <- 1 to 5;
+       j <- 1 to i) println(i + " " + j)
+
+  Random.nextInt(5) match {
+    case 1 => println("One")
+    case 2 => println("Two")
+    case _ => println("Somthing else")
+  }
+
+}
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Variables}
+Scala has two types of variables:
+\begin{itemize}
+  \item Values. Defined using val keyword. Can not be changed.
+  \item Variables. Defined using var keyword. Can be reassigned.
+\end{itemize}
+
+\begin{example}
+\begin{lstlisting}
+// List[Int]
+val catsCount: List[Int] = List(1, 2, 3, 15)
+
+// List[String] 
+val names = List("John", "Bob", "Semen", "Pekka")
+
+// scala.collection.immutable.Map[String,Int]
+var cats = names.zip(catsCount).toMap
+
+cats += "Olga" -> 7
+\end{lstlisting}
+\end{example}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Classes, traits and objects}
+
+Scala has no static class members. But there are singleton objects. If object has a same name with a class it called companion object.
+
+\begin{lstlisting}
+class Foo(val x: Int, y: String) {
+  val r = y.reverse
+}
+
+object Foo {
+  def apply(s: String) = new Foo(1, s)
+}
+
+val a = new Foo(5, "test")
+val b = Foo("buzz")
+
+// prints "tsetzzub"
+println(a.r + b.r)
+\end{lstlisting}
+
+There traits in Scala instead of Java interfaces. Traits can contain fields and abstract and concrete methods. Classes can be inherited from on class and several traits.
+
+\begin{lstlisting}
+class A
+trait B
+trait C
+
+class D extends A with B with C
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Parameterized types}
+
+Types can have parameters.
+
+\begin{lstlisting}
+class Foo
+
+// Can hold any class
+class Holder[A](val a: A)
+
+// Holder[Int]
+val intHolder = new Holder(5)
+
+// Can hold only Foo and it's children
+class FooHolder[A <: Foo](val a: A)
+
+// Can hold only Foo and it's parents
+class FooParentHolder[A >: Foo](val a: A)
+\end{lstlisting}
+
+Functions can be parameterized as well
+
+\begin{lstlisting}
+object Foo {
+  def applyFunction[A, B](v: A, f: A => B) = f(v)
+}
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Parameter variance}
+Type parameters can have variance modifiers to specify inheriting behavior.
+\begin{itemize}
+\item \linline{class Test1[A](val a: A)} -- nonvariant subtyping (default)
+\item \linline{class Test2[+A](val a: A)} -- covariant subtyping
+\item \linline{class Test3[-A](val a: A)} -- contravariant subtyping
+\end{itemize}
+\begin{tikzpicture}
+\umlsimpleclass{B}
+\umlsimpleclass[y=-1.5]{C}
+\umlsimpleclass[x=2.5]{Test1[B]}
+\umlsimpleclass[x=2.5, y=-1.5]{Test1[C]}
+\umlsimpleclass[x=5]{Test2[B]}
+\umlsimpleclass[x=5, y=-1.5]{Test2[C]}
+\umlsimpleclass[x=7.5]{Test3[B]}
+\umlsimpleclass[x=7.5, y=-1.5]{Test3[C]}
+\umlinherit{C}{B}
+\umlinherit{Test2[C]}{Test2[B]}
+\umlinherit{Test3[B]}{Test3[C]}
+\end{tikzpicture}
+
+\end{frame}
+
+\subsection{OOP features}
+
+\begin{frame}[fragile]
+\frametitle{Scala is OOP language}
+
+\begin{lstlisting}
+abstract class Shape {
+  def area(): Double
+}
+
+trait Colored {
+  val color: String
+}
+
+class Circle(val r: Double) extends Shape {
+  override def area() = math.Pi * r * r
+}
+
+class ColorCircle(val r: Double, val color: String) 
+  extends Circle(r) 
+  with Colored
+
+object Shapes extends App {
+  val circles = List(new Cicrle(10), new ColorCircle(3, "Red"))
+
+  for (c <- circles) {
+    // For Scala < 2.10
+    // println("Circle with radius " + c.r + "has area: " + c.area)
+    // For Scala 2.10, using string interpolation:
+    println(s"Circle with radius ${c.r} has area: ${c.area}")
+  }
+}
+
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Class hierarchy}
+
+\begin{tikzpicture}
+\umlsimpleclass{Any}
+\umlsimpleclass[x=-3, y=-1]{AnyVal}
+\umlsimpleclass[x=3, y=-1]{AnyRef}
+\umlsimpleclass[x=-4, y=-2.5]{Int}
+\umlsimpleclass[x=-2, y=-2.5]{Double}
+\umlsimpleclass[x=2, y=-2.5]{String}
+\umlsimpleclass[x=4, y=-2.5]{List}
+\umlsimpleclass[x=3, y=-4]{Null}
+\umlsimpleclass[x=-1,y=-5]{Nothing}
+\umlinherit{AnyVal}{Any}
+\umlinherit{AnyRef}{Any}
+\umlinherit{Int}{AnyVal}
+\umlinherit{Double}{AnyVal}
+\umlinherit{String}{AnyRef}
+\umlinherit{List}{AnyRef}
+\umlinherit{Null}{String}
+\umlinherit{Null}{List}
+\umlinherit{Nothing}{Double}
+\umlinherit{Nothing}{Int}
+\umlinherit{Nothing}{Null}
+\end{tikzpicture}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Implicit conversions}
+
+Scala values can be implicitly converted to another type if there is some converter available in current scope. E.g.
+\linline{val range = 1 to 5}. It's the same with \linline{val range = 1.to(5)}. But type Int has no to method.
+The reason is that \texttt{Int} value converted implicitly to \texttt{RichInt}.
+
+\begin{example}
+\begin{lstlisting}
+implicit class StrMix(val s: String) {
+  def <||>(o: String): String =
+    s.zip(o).map(t => t._1.toString + t._2.toString).mkString
+}
+
+// Usage. Result will be "hweolrllod"
+println("hello" <||> "world")
+\end{lstlisting}
+\end{example}
+
+\end{frame}
+
+\subsection{Functional features}
+
+\begin{frame}[fragile]
+\frametitle{Scala is a functional language}
+  Scala functions are first class members:
+  \begin{itemize}
+    \item You can create variables of function types.
+    \item You can pass functions as a parameters.
+    \item You can return functions as a result of other function.
+    \item Anonimous functions ($\lambda$-functions).
+  \end{itemize}
+  \begin{example}
+\begin{lstlisting}
+val lst = List(2, 3, 5, 26, 7, 4, 13)
+
+val oddOnly = lst.filter(x => x % 2 == 1)
+
+val lesTenDbl = lst.filter(_ < 10).map(_ * 2)
+
+val sqsum = lst.foldLeft(0)((a, i) => a + i * i)
+\end{lstlisting}
+  \end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{More complex example}
+
+    \begin{lstlisting}
+def swapParams[A,B,C](f: (A,B) => C): (B,A) => C = 
+  (b, a) => f(a, b)
+
+def repeat(a: String, times: Int) = 
+  (for (i <- 1 to times) yield a) mkString " "
+
+val repeatS = swapParams(repeat)
+    \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Under the hood}
+
+When you assign function to variable, it's type is a one of the traits \linline{Function}, \linline{Function1}, \linline{Function2}, etc.
+\begin{lstlisting}
+trait Function1[-T1, +R] {
+  def apply(p: T1): R
+}
+\end{lstlisting}
+This allows function types be compatible to each other.
+\begin{example}
+\begin{lstlisting}
+def process(f: ChildP => BaseR)
+
+// We can call process with compatible type
+process(t: BaseP => ChildR = new ChildR)
+\end{lstlisting}
+\end{example}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Partially applied functions}
+
+In Scala functions can have several lists of parameters. If you pass parameters not for lists of parameters
+you will get a function of the rest parameters.
+
+\begin{example}
+\begin{lstlisting}
+def modN(n: Int)(x: Int) = x % n == 0
+
+// return false
+modN(5)(3)
+
+// returns List(4, 28)
+List(1,2,4,15,7,28).filter(modN(4))
+\end{lstlisting}
+\end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Pattern matching}
+
+\linline{Option[T]} is a class which can hold some value of type T, or hold None. It's extremely useful for return values
+(instead of return null and get NullPointerException). For example List.find method returns Option. Options can be pattern matched.
+
+\begin{lstlisting}
+  val names = List("Ann", "Roger", "Bob", "John")
+
+  def findByPrefix(prefix: String) = {
+     names.find(_.startsWith(prefix)) match {
+      case Some(name) => "It's " + name
+      case None => "Nobody found"
+    }
+  }
+
+  println(findByPrefix("B"))
+
+  val (beforeG, afterG) = names partition (_ <= "G")
+
+  def quickSort[T](l: List[T])(implicit org: Ordering[T]): List[T] = l match {
+    case x :: xs => 
+      val (l, h) = xs partition (v => ord.lteq(v, x))
+      quickSort(l) ::: x :: quickSort(h)
+
+    case Nil => Nil
+  }
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Monads}
+
+Each monad class supports following operations: \linline{map}, \linline{flatMap}, and wrap into monadic type (constructor). For example the \linline{Option} class has:
+
+\begin{lstlisting}
+sealed abstract class Option[+A] {
+  def map[B](f: A => B): Option[B] =
+    if (isEmpty) None else Some(f(this.get))
+
+  def flatMap[B](f: A => Option[B]): Option[B] =
+    if (isEmpty) None else f(this.get)
+
+  def get: A
+
+  def getOrElse[B >: A](default: => B): B =
+    if (isEmpty) default else this.get
+}
+
+case class Some[+A] extends Option[A] {
+  def isEmpty = false
+  def get = x
+}
+
+case class None extends Option[Nothing] {
+  def isEmpty = true
+  def get = throw new NoSuchElementException("None.get")
+}
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Option as monad example}
+
+\begin{lstlisting}
+object DB {
+  def getPhone(name: String): Option[String]
+  def getName(email: String): Option[String]
+  def getEmail(username: String): Option[String]
+}
+\end{lstlisting}
+
+\begin{columns}[t]
+\begin{column}{0.5\textwidth}
+\begin{lstlisting}
+def getPhoneByUser(user: String) = {
+  DB.getEmail(username) match {
+    case Some(email) => 
+      DB.getName(email) match {
+        case Some(n) => getPhone(n)
+        case None => None
+    }
+    case None => None
+  }
+}
+\end{lstlisting}
+\end{column}
+\begin{column}{0.5\textwidth}
+\begin{lstlisting}
+def getPhoneByUser(user: String) =
+  DB.getEmail(user)
+    .flatMap(DB.getName)
+    .flatMap(DB.getPhone)
+\end{lstlisting}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{List is a monad too}
+List (and other \linline{Iterable}s is also a monad. It contains method \linline{def flatMap(f: A => List[B]): List[B]}.
+It applies the function and then \linline{flatten}s the list.
+
+Here is the example of chess kinght moving:
+\begin{lstlisting}
+type Position = (Int, Int)
+
+def nextPositions(current: Position): List[Position] = {
+  val (x, y) = current
+  val all = List((x + 2, y - 1), (x + 2, y + 1),
+                 (x - 2, y - 1), (x - 2, y + 1),
+                 (x - 1, y - 2), (x - 1, y + 2),
+                 (x + 1, y - 2), (x + 1, y + 2))
+  all.filter(p => (1 to 8).contains(p._1) && (1 to 8).contains(p._2))
+}
+
+def twoMoves(pos: (Int, Int)) = {
+  val first = nextPositions(pos)
+  first ++ first.flatMap(nextPositions)
+}
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Try. Not a monad but looks like}
+
+\linline{Try} wraps a computation which can be failed.
+
+\begin{lstlisting}
+// Can throw IOException
+def readFile(fileName: String): String
+
+// Can throw some other network exceptions
+def sendByMail(address: InternetAddress, subject: String, content: String)
+
+def sendFile(file: String, addr: InternetAddress, subject: String): Boolean =
+  Try(readFile(fileName)).flatMap(data =>
+    Try(sendByMail(address, subject, data))).isSuccess
+
+\end{lstlisting}
+
+\end{frame}
+
+\section{Tools and libraries}
+
+\begin{frame}{Scala tools and libraries}
+There are lot of useful tools and libraries for Scala:
+\begin{itemize}
+\item \href{http://www.scala-lang.org}{Scala home} -- Scala language home site
+\item \href{http://www.scala-sbt.org}{sbt} -- build tool for Scala, Java and more
+\item \href{http://www.scala-ide.org}{Scala IDE} -- Eclipse based IDE for Scala
+\item \href{http://www.akka.io}{Akka} -- actor toolkit
+\item \href{http://www.playframework.com}{Play Framework} -- web framework
+\item \href{http://www.liftweb.net}{Lift} -- web framework
+\item \href{http://slick.typesafe.com}{Slick} -- database query and access library
+\item \href{http://squeryl.org}{Squeryl} -- ORM and query DSL
+\item \href{http://www.scalastyle.org/}{ScalaStyle} -- static code analyzer
+\item \href{http://www.scalatest.org}{ScalaTest} -- unit test framework
+\item \href{http://www.scalacheck.org}{ScalaCheck} -- property-based testing library
+\item \href{http://www.scalamock.org}{ScalaMock} -- mocking library
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The end}
+\centering
+\textbf{That's all folks!}
+\end{frame}
+\end{document}
