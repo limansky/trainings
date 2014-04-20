@@ -5,7 +5,7 @@ import scala.util.{Success, Failure}
 
 object Fetcher extends App {
   def getPage(url: String): Future[String] = {
-    future {
+    Future {
       Source.fromURL(url).mkString
     }
   }
