@@ -148,7 +148,6 @@ getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
 \frametitle{Promises}
 \begin{tikzpicture}
 \begin{umlseqdiag}
-% \umlactor
 \umlactor[scale=0.5]{actor} 
 \umlobject[class=Foo, x=3]{foo}
 \begin{umlcall}[op={getData()},return={f}]{actor}{foo}
@@ -156,11 +155,11 @@ getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
   \umlcreatecall[class=Future, x=9]{p}{f}
 \end{umlcall}
 \begin{umlcallself}[op=calc()]{foo}
-\end{umlcallself}
-\begin{umlcall}[op=complete(v)]{foo}{p}
+\begin{umlcall}[type=asynchron,op=complete(v)]{foo}{p}
 \begin{umlcall}[op=complete(v)]{p}{f}
 \end{umlcall}
 \end{umlcall}
+\end{umlcallself}
 \end{umlseqdiag}
 \end{tikzpicture}
 \end{frame}
