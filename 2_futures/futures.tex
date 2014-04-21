@@ -3,6 +3,9 @@
 
 \input{../common/setup.tex}
 
+\usepackage{tikz}
+\usepackage{tikz-uml}
+
 \title{Futures, promises and some fun}
 \subtitle{in Scala and C++}
 
@@ -79,6 +82,23 @@ object Fetcher extends App {
 \end{frame}
 
 \begin{frame}[fragile]
+\frametitle{Waiting for the result}
+Sometimes you need to block current thread and wait for the future result.
+It can be achieved using \linline{Await.result} method:
+\begin{example}
+\begin{lstlisting}
+import scala.concurrent._
+import scala.concurrent.duration._
+
+def getWeather(date: Date): Future[WeatherReport]
+
+val report = Await.result(getWeather(new Date), 10.seconds)
+\end{lstlisting}
+\end{example}
+
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{Fetcher example in C++ 11}
 \begin{lstlisting}[language=C++]
 #include <future>
@@ -119,10 +139,30 @@ int main(int argc, char* argv[]) {
 \frametitle{Futures composition}
 \linline{Future} is a monad. You can use \linline{map}, \linline{flatMap}, \linline{filter}, etc to
 compose \linline{Future}s together. You can also use for-comprehensions.
+\begin{lstlisting}
+getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
+\end{lstlisting}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Promises}
+\begin{tikzpicture}
+\begin{umlseqdiag}
+% \umlactor
+\umlactor[scale=0.5]{actor} 
+\umlobject[class=Foo, x=3]{foo}
+\begin{umlcall}[op={getData()},return={f}]{actor}{foo}
+  \umlcreatecall[class=Promise,x=6]{foo}{p}
+  \umlcreatecall[class=Future, x=9]{p}{f}
+\end{umlcall}
+\begin{umlcallself}[op=calc()]{foo}
+\end{umlcallself}
+\begin{umlcall}[op=complete(v)]{foo}{p}
+\begin{umlcall}[op=complete(v)]{p}{f}
+\end{umlcall}
+\end{umlcall}
+\end{umlseqdiag}
+\end{tikzpicture}
 \end{frame}
 
 \end{document}
