@@ -142,9 +142,15 @@ int main(int argc, char* argv[]) {
 \begin{frame}[fragile]
 \frametitle{Futures composition}
 \linline{Future} is a monad. You can use \linline{map}, \linline{flatMap}, \linline{filter}, etc to
-compose \linline{Future}s together. You can also use for-comprehensions.
+compose \linline{Future}s together. Since these functions are aveailable you can also use for-comprehensions.
 \begin{lstlisting}
-getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
+def getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
+
+val linkedPage = getPage(url).flatMap { page =>
+  val firstUrl = findUrl(page)
+  if (firstUrl.nonEmpty) getPage(firstUrl)
+  else throw new Exception("Page with no links")
+}
 \end{lstlisting}
 \end{frame}
 
