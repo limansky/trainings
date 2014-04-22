@@ -21,6 +21,8 @@
     \titlepage
 \end{frame}
 
+\section {Intro}
+
 \begin{frame}{Why futures?}
 Futures is a modern way for parallel computations.
 \begin{itemize}
@@ -29,6 +31,8 @@ Futures is a modern way for parallel computations.
 \item Futures are available in most of the modern languages (C++11, Java 7, Scala 2.10, Python 3.2).
 \end{itemize}
 \end{frame}
+
+\section{Futures}
 
 \begin{frame}
 \frametitle{Futures}
@@ -144,8 +148,22 @@ getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
 \end{lstlisting}
 \end{frame}
 
-\begin{frame}[fragile]
+\section{Promises}
+
+\begin{frame}
 \frametitle{Promises}
+\linline{Promise} is a kind of container, which owns a \linline{Future} object and completes it
+when the value is ready.
+\begin{enumerate}
+\item Create future of proper data type.
+\item Start a computation.
+\item Return future to the caller using \linline{Promise.future}.
+\item Complete promise using \linline{success} or \linline{failure} method.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Promises life cycle}
 \begin{tikzpicture}
 \begin{umlseqdiag}
 \umlactor[scale=0.5]{actor} 
@@ -155,13 +173,35 @@ getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
   \umlcreatecall[class=Future, x=9]{p}{f}
 \end{umlcall}
 \begin{umlcallself}[op=calc()]{foo}
-\begin{umlcall}[type=asynchron,op=complete(v)]{foo}{p}
+\begin{umlcall}[type=asynchron,op=success(v)]{foo}{p}
 \begin{umlcall}[op=complete(v)]{p}{f}
 \end{umlcall}
 \end{umlcall}
 \end{umlcallself}
 \end{umlseqdiag}
 \end{tikzpicture}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Code example}
+\begin{lstlisting}
+
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Bibliography}
+\begin{thebibliography}{00}
+\bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
+\emph{Programming in Scala},
+Artima, 2nd edition, 2011
+\bibitem{futures}Philipp Haller, Aleksandar Prokopec, Heather Miller, Viktor Klang, Roland Kuhn, and Vojin Jovanovic
+\emph{Futures and Promises}, \url{http://docs.scala-lang.org/overviews/core/futures.html}
+\end{thebibliography}
+\end{frame}
+
+\begin{frame}{The end}
+\centering
+\textbf{That's all folks!}
 \end{frame}
 
 \end{document}
