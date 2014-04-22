@@ -4,12 +4,20 @@ abstract class Expr {
   val eval: Double
 }
 
-case class Sum(a: List[Expr]) extends Expr {
-  override val eval = a.foldLeft(0.0)(_ + _.eval)
+case class Add(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval + b.eval
 }
 
-case class Mul(a: List[Expr]) extends Expr {
-  override val eval = a.foldLeft(1.0)(_ * _.eval)
+case class Sub(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval - b.eval
+}
+
+case class Mul(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval * b.eval
+}
+
+case class Div(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval / b.eval
 }
 
 case class Num(a: Double) extends Expr {
@@ -18,10 +26,13 @@ case class Num(a: Double) extends Expr {
 
 trait CalcParser extends JavaTokenParsers {
   def num = floatingPointNumber ^^ (s => Num(s.toDouble))
-  def sum: Parser[Sum] = term ~ rep("+" ~> term) ^^ { case a ~ b => Sum(a :: b) }
-  def mul = factor ~ rep("*" ~> factor) ^^ { case a ~ b => Mul(a :: b) }
+  def plus: Parser[Expr => Expr] = "+" ~> term ^^ (x => Add(_, x))
+  def minus: Parser[Expr => Expr] = "-" ~> term ^^ (x => Sub(_, x))
+  def times: Parser[Expr => Expr] = "*" ~> factor ^^ (x => Mul(_, x))
+  def div: Parser[Expr => Expr] = "/" ~> factor ^^ (x => Div(_, x))
+  def sum: Parser[Expr] = term ~ rep(plus | minus) ^^ { case a ~ b => b.foldLeft(a)((i, f) => f(i)) }
+  def term: Parser[Expr] = factor ~ rep(times | div) ^^ { case a ~ b => b.foldLeft(a)((i, f) => f(i)) }
   def factor = num | "(" ~> sum <~ ")"
-  def term = mul | num
 }
 
 object Calculator extends App with CalcParser {

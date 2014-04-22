@@ -111,6 +111,7 @@ Main combinators are:
 \item \linline{rep1} or \linline{+} -- repeat at least once
 \item \linline{opt} or \linline{?} -- optional parser
 \item \linline{repsep} -- repeated parser with separator
+\item \linline{^^} -- convert parsed value using function.
 \end{itemize}
 \end{frame}
 
@@ -145,6 +146,73 @@ object FileParser extends App with CSVParser {
   parseAll(file, str) match {
     case Success(result, _) => result foreach (l => println(l.mkString("\t")))
     case fail: NoSuccess    => println("Parsing failed" + fail.msg)
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Calculator using parsers}
+Defining a model:
+\begin{lstlisting}[name=calc]
+import scala.util.parsing.combinator.JavaTokenParsers
+
+abstract class Expr {
+  val eval: Double
+}
+
+case class Add(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval + b.eval
+}
+
+case class Sub(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval - b.eval
+}
+
+case class Mul(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval * b.eval
+}
+
+case class Div(a: Expr, b: Expr) extends Expr {
+  override val eval = a.eval / b.eval
+}
+
+case class Num(a: Double) extends Expr {
+  override val eval = a
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Calculator using parsers, continuation}
+Defining parser:
+\begin{lstlisting}[name=calc]
+trait CalcParser extends JavaTokenParsers {
+  def num = floatingPointNumber ^^ (s => Num(s.toDouble))
+
+  def plus: Parser[Expr => Expr] = "+" ~> term ^^ (x => Add(_, x))
+
+  def minus: Parser[Expr => Expr] = "-" ~> term ^^ (x => Sub(_, x))
+
+  def times: Parser[Expr => Expr] = "*" ~> factor ^^ (x => Mul(_, x))
+
+  def div: Parser[Expr => Expr] = "/" ~> factor ^^ (x => Div(_, x))
+
+  def sum: Parser[Expr] = term ~ rep(plus | minus) ^^ {
+      case a ~ b => b.foldLeft(a)((i, f) => f(i))
+  }
+
+  def term: Parser[Expr] = factor ~ rep(times | div) ^^ {
+      case a ~ b => b.foldLeft(a)((i, f) => f(i))
+  }
+
+  def factor = num | "(" ~> sum <~ ")"
+}
+
+object Calculator extends App with CalcParser {
+  parseAll(sum, args.mkString) match {
+    case Success(e, _) => println("Result: " + e.eval)
+    case fail: NoSuccess    => println("Parsing failed: " + fail.msg)
   }
 }
 \end{lstlisting}
