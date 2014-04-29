@@ -154,6 +154,25 @@ val linkedPage = getPage(url).flatMap { page =>
 \end{lstlisting}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{More combinators}
+There are some additional combinators, helps you handle failures:
+\begin{itemize}
+\item \linline{fallbackTo[U >: T](that: Future[U])} -- returns that if this failed.
+\item \linline{recover[U >: T](f: Throwable => U)} -- completes failed future with value returned by f.
+\item \linline{recoverWith[U >: T](f: Throwable => Future[U])} -- returns value returned by f if original future failed.
+\end{itemize}
+\begin{example}
+\begin{lstlisting}
+val countRecords: Future[Int] = readRecordsFromFile(filename) map (
+    _.size
+  ) recover {
+    case FileNotFoundException => 0
+  }
+\end{lstlisting}
+\end{example}
+\end{frame}
+
 \section{Promises}
 
 \begin{frame}
