@@ -46,7 +46,7 @@ Future is an object holding a value which may become available later.  Future ca
 
 \begin{frame}[fragile]
 \frametitle{Future class}
-\linline{Future} instances can be created using \linline{future} construct. 
+\linline{Future} instances can be created using \linline{Future} construct.
 To use futures you need to have an instance of \linline{ExecutionContext}. You can just import global one.
 Future has several callbacks:
 \begin{lstlisting}
@@ -68,7 +68,7 @@ import scala.util.{Success, Failure}
 
 object Fetcher extends App {
   def getPage(url: String): Future[String] = {
-    future {
+    Future {
       Source.fromURL(url).mkString
     }
   }
@@ -173,6 +173,67 @@ val countRecords: Future[Int] = readRecordsFromFile(filename) map (
 \end{example}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Multipart fetcher example}
+We will use Dispatch library, which provides asynchronous HTTP API (see \cite{dispatch}).
+\begin{lstlisting}[name=multifetch]
+val partsNumber = 5
+
+def getSinglePart(link: String): Future[Array[Byte]] = {
+  Http(url(link) OK as.Bytes)
+}
+
+def getMultipart(link: String): Future[Array[Byte]] = {
+
+  def getPart(from: Int, to: Option[Int]): Future[Array[Byte]] = {
+    val toStr = to.map(_.toString).getOrElse("")
+    val u = url(link).addParameter("range", s"bytes=$from-$toStr")
+    Http(u OK as.Bytes)
+  }
+
+  val f = for {
+    resp <- Http(url(link).HEAD)
+    h = resp.getHeaders()
+    if h.containsKey("Accept-Range") && h.containsKey("Content-Length")
+  } yield h.getFirstValue("Content-Length").toInt
+
+  f flatMap { size =>
+    val partSize = size / partsNumber
+    val tasks = (0 to partsNumber - 1).map(i =>
+                  getPart(i * partSize, Some((i + 1) * partSize - 1))
+                ) :+ getPart((partsNumber - 1) * partSize, None)
+    Future.sequence(tasks)
+  } map {
+    _.toArray.flatten
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Multipart fetcher, part 2}
+Now it's possible to fetch a file using multipart fetcher, but if it fails make attempt to use
+regular GET requiest.
+\begin{lstlisting}[name=multifetch]
+args.toList match {
+  case link :: Nil =>
+    getMultipart(link) fallbackTo {
+      getSinglePart(link)
+    } onComplete {
+      case Success(data) =>
+        val filename = link.substring(link.lastIndexOf('/') + 1)
+        val fs = new FileOutputStream(filename)
+        fs.write(data)
+        fs.close
+        println("Done")
+      case Failure(t) =>
+        println(s"Failed to fetch file from $link, because of ${t.getMessage}")
+    }
+  case _ => println("Usage: multiget <link>")
+}
+\end{lstlisting}
+\end{frame}
+
 \section{Promises}
 
 \begin{frame}
@@ -191,7 +252,7 @@ when the value is ready.
 \frametitle{Promises life cycle}
 \begin{tikzpicture}
 \begin{umlseqdiag}
-\umlactor[scale=0.5]{actor} 
+\umlactor[scale=0.5]{actor}
 \umlobject[class=Foo, x=3]{foo}
 \begin{umlcall}[op={getData()},return={f}]{actor}{foo}
   \umlcreatecall[class=Promise,x=6]{foo}{p}
@@ -219,8 +280,9 @@ when the value is ready.
 \bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
 \emph{Programming in Scala},
 Artima, 2nd edition, 2011
-\bibitem{futures}Philipp Haller, Aleksandar Prokopec, Heather Miller, Viktor Klang, Roland Kuhn, and Vojin Jovanovic
+\bibitem{futures}Philipp Haller, Aleksandar Prokopec, Heather Miller, Viktor Klang, Roland Kuhn, and Vojin Jovanovic:
 \emph{Futures and Promises}, \url{http://docs.scala-lang.org/overviews/core/futures.html}
+\bibitem{dispatch}Dispatch library, url{http://dispatch.databinder.net/}
 \end{thebibliography}
 \end{frame}
 
