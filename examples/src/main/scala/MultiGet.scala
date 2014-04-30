@@ -1,4 +1,6 @@
 import dispatch._, Defaults._
+import java.io.FileOutputStream
+import scala.util.{Success, Failure}
 
 object MultiGet extends App {
 
@@ -9,16 +11,37 @@ object MultiGet extends App {
   }
 
   def getMultipart(link: String) = {
+
+    def getPart(from: Int, to: Option[Int]): Future[Array[Byte]] = {
+      val toStr = to.map(_.toString).getOrElse("")
+      val u = url(link).addParameter("range", s"bytes=$from-$toStr")
+      Http(u OK as.Bytes)
+    }
+
     val f = for {
       resp <- Http(url(link).HEAD)
-      val h = resp.getHeaders()
+      h = resp.getHeaders()
       if h.containsKey("Accept-Range") && h.containsKey("Content-Length")
     } yield h.getFirstValue("Content-Length").toInt
 
-    f recoverWith { case e  => getSinglePart(link) }
+    f flatMap { size =>
+      val partSize = size / parts
+      val tasks = (0 to parts - 1).map(i => getPart(i * partSize, Some((i + 1) * partSize - 1))) :+
+                  getPart((parts - 1) * partSize, None)
+      Future.sequence(tasks)
+    } fallbackTo {
+      getSinglePart(link)
+    }
 
-    f onFailure {
-      case t => println(s"Failed to fetch file from $link, because of ${t.getMessage}")
+    f onComplete {
+      case Success(data) =>
+        val filename = link.substring(link.lastIndexOf('/') + 1)
+        val fs = new FileOutputStream(filename)
+        fs.write(data)
+        fs.close
+        println("Done")
+      case Failure(t) =>
+        println(s"Failed to fetch file from $link, because of ${t.getMessage}")
     }
   }
 
