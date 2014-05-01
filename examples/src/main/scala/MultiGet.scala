@@ -7,26 +7,28 @@ object MultiGet extends App {
   val partsNumber = 5
 
   def getSinglePart(link: String): Future[Array[Byte]] = {
-    Http(url(link) OK as.Bytes)
+    Http.configure(_ setFollowRedirects true)(url(link) OK as.Bytes)
   }
 
   def getMultipart(link: String): Future[Array[Byte]] = {
 
     def getPart(from: Int, to: Option[Int]): Future[Array[Byte]] = {
       val toStr = to.map(_.toString).getOrElse("")
-      val u = url(link).addParameter("range", s"bytes=$from-$toStr")
+      println(s"Starting fetching part $from - $toStr")
+      val u = url(link) <:< Map("range" -> s"bytes=$from-$toStr")
       Http(u OK as.Bytes)
     }
 
     val f = for {
       resp <- Http(url(link).HEAD)
       h = resp.getHeaders()
-      if h.containsKey("Accept-Range") && h.containsKey("Content-Length")
+      if h.containsKey("Accept-Ranges") && h.containsKey("Content-Length")
     } yield h.getFirstValue("Content-Length").toInt
 
     f flatMap { size =>
+      println(s"Have size $size")
       val partSize = size / partsNumber
-      val tasks = (0 to partsNumber - 1).map(i => getPart(i * partSize, Some((i + 1) * partSize - 1))) :+
+      val tasks = (0 to partsNumber - 2).map(i => getPart(i * partSize, Some((i + 1) * partSize - 1))) :+
                   getPart((partsNumber - 1) * partSize, None)
       Future.sequence(tasks)
     } map {
