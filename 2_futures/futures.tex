@@ -139,6 +139,68 @@ int main(int argc, char* argv[]) {
 \end{lstlisting}
 \end{frame}
 
+\section{Promises}
+
+\begin{frame}
+\frametitle{Promises}
+\linline{Promise} is a kind of container, which owns a \linline{Future} object and completes it
+when the value is ready.
+\begin{enumerate}
+\item Create future of proper data type.
+\item Start a computation.
+\item Return future to the caller using \linline{Promise.future}.
+\item Complete promise using \linline{success} or \linline{failure} method.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Promises life cycle}
+\begin{tikzpicture}
+\begin{umlseqdiag}
+\umlactor[scale=0.5]{actor}
+\umlobject[class=Foo, x=3]{foo}
+\begin{umlcall}[op={getData()},return={f}]{actor}{foo}
+  \umlcreatecall[class=Promise,x=6]{foo}{p}
+  \umlcreatecall[class=Future, x=9]{p}{f}
+\end{umlcall}
+\begin{umlcallself}[op=calc()]{foo}
+\begin{umlcall}[type=asynchron,op=success(v)]{foo}{p}
+\begin{umlcall}[op=complete(v)]{p}{f}
+\end{umlcall}
+\end{umlcall}
+\end{umlcallself}
+\end{umlseqdiag}
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Code example}
+For example we need to get result of the first completed future from list:
+\begin{lstlisting}
+def firstResultOf[T](futures: List[Future[T]]): Future[T] = {
+  val p = Promise[T]()
+  futures.foreach(_ onComplete { p.tryComplete(_) })
+  p.future
+}
+\end{lstlisting}
+If we are intrested only in success result:
+\begin{lstlisting}
+def firstSuccessOf[T](futures: Future[T]...): Future[T] = {
+  val p = Promise[T]()
+  left = futures.size
+  futures.foreach(_ on Complete {
+    case Success(v) => p.trySuccess(v)
+    case Failure(e) =>
+      if (left == 0) p.tryFailure(e)
+      left -= 1
+  }
+  p.future
+}
+\end{lstlisting}
+\end{frame}
+
+\section{Futures composition}
+
 \begin{frame}[fragile]
 \frametitle{Futures composition}
 \linline{Future} is a monad. You can use \linline{map}, \linline{flatMap}, \linline{filter}, etc to
@@ -234,46 +296,6 @@ args.toList match {
 \end{lstlisting}
 \end{frame}
 
-\section{Promises}
-
-\begin{frame}
-\frametitle{Promises}
-\linline{Promise} is a kind of container, which owns a \linline{Future} object and completes it
-when the value is ready.
-\begin{enumerate}
-\item Create future of proper data type.
-\item Start a computation.
-\item Return future to the caller using \linline{Promise.future}.
-\item Complete promise using \linline{success} or \linline{failure} method.
-\end{enumerate}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Promises life cycle}
-\begin{tikzpicture}
-\begin{umlseqdiag}
-\umlactor[scale=0.5]{actor}
-\umlobject[class=Foo, x=3]{foo}
-\begin{umlcall}[op={getData()},return={f}]{actor}{foo}
-  \umlcreatecall[class=Promise,x=6]{foo}{p}
-  \umlcreatecall[class=Future, x=9]{p}{f}
-\end{umlcall}
-\begin{umlcallself}[op=calc()]{foo}
-\begin{umlcall}[type=asynchron,op=success(v)]{foo}{p}
-\begin{umlcall}[op=complete(v)]{p}{f}
-\end{umlcall}
-\end{umlcall}
-\end{umlcallself}
-\end{umlseqdiag}
-\end{tikzpicture}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Code example}
-\begin{lstlisting}
-
-\end{lstlisting}
-\end{frame}
 
 \begin{frame}{Bibliography}
 \begin{thebibliography}{00}
@@ -282,7 +304,7 @@ when the value is ready.
 Artima, 2nd edition, 2011
 \bibitem{futures}Philipp Haller, Aleksandar Prokopec, Heather Miller, Viktor Klang, Roland Kuhn, and Vojin Jovanovic:
 \emph{Futures and Promises}, \url{http://docs.scala-lang.org/overviews/core/futures.html}
-\bibitem{dispatch}Dispatch library, url{http://dispatch.databinder.net/}
+\bibitem{dispatch}Dispatch library, \url{http://dispatch.databinder.net/}
 \end{thebibliography}
 \end{frame}
 
