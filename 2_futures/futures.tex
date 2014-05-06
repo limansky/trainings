@@ -103,6 +103,18 @@ val report = Await.result(getWeather(new Date), 10.seconds)
 \end{frame}
 
 \begin{frame}[fragile]
+\frametitle{C++ std::future}
+In C++11 \linline{std::future} class has following methods:
+\begin{itemize}
+\item \linline{get} -- provides value if it ready or blocks current thread.
+\item \linline{wait} -- blocks current thread while value is not ready.
+\item \linline{wait_for}, \linline{wait_until} -- wait for result, but not longer than
+required.
+\end{itemize}
+\linline{std::async} function can be used to create future from function, method or function object.
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{Fetcher example in C++ 11}
 \begin{lstlisting}[language=C++]
 #include <future>
@@ -197,6 +209,17 @@ def firstSuccessOf[T](futures: Future[T]...): Future[T] = {
   p.future
 }
 \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{C++ std::promise}
+In C++11 \linline{std::promise} class provides a way to pass values between threads.
+Most important methods are:
+\begin{itemize}
+\item \linline{get_future} -- returns future object.
+\item \linline{set_value} -- completes future with value.
+\item \linline{set_exception} -- completes future withe exception.
+\end{itemize}
 \end{frame}
 
 \section{Futures composition}
