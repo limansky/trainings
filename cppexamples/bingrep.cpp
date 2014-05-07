@@ -3,12 +3,37 @@
 #include <fstream>
 #include <vector>
 #include <cstring>
+#include <exception>
+#include <algorithm>
 
 using namespace std;
 
+static const size_t BUFFER_SIZE = 1024 * 1024;
+
 using pattern = vector<char>;
 
-void scanfile(ifstream& s, const pattern& pat, promise<int>& p) {
+void scanfile(const char* filename, const pattern& pat, promise<int>& p) {
+    ifstream f(filename, ios::binary);
+    int begin = 0;
+    vector<char> buf(BUFFER_SIZE);
+    try {
+        while (f) {
+            f.read(buf.data(), BUFFER_SIZE);
+            auto end = buf.begin() + f.gcount();
+            auto pos = search(buf.begin(), end, pat.begin(), pat.end());
+            if (pos != end) {
+                cout << begin << " " << pos - buf.begin() << " " <<  end - buf.begin();
+                p.set_value(begin + (pos - buf.begin()));
+                return;
+            }
+            if (f) {
+                begin += f.gcount() - pat.size();
+                f.seekg(-pat.size(), ios_base::cur);
+            }
+        }
+    } catch (exception&) {
+        p.set_exception(current_exception());
+    }
     p.set_value(-1);
 }
 
@@ -17,15 +42,9 @@ int main(int argc, char* argv[]) {
         cout << "Usage: bingrep <filename> <hex bytes*>\n";
         return -1;
     }
-    
-    ifstream f(argv[0], ios::binary);
-    if (!f) {
-        cout << "Invalid file\n";
-        return -2;
-    }
 
     pattern pat;
-    for (int i = 1; i < argc; ++i) {
+    for (int i = 2; i < argc; ++i) {
         char* byte = argv[i];
         if (strlen(byte) != 2) {
             cout << "Invalid byte: " << byte << "\n";
@@ -36,11 +55,12 @@ int main(int argc, char* argv[]) {
     }
 
     promise<int> p;
-    thread worker(&scanfile, ref(f), pat, ref(p));
+    thread worker(&scanfile, argv[1], pat, ref(p));
 
     auto result = p.get_future();
-    chrono::milliseconds span(500);
-    while (result.wait_for(span) == future_status::timeout) cout << '.';
+    chrono::milliseconds span(100);
+    cout << "Searching: ";
+    while (result.wait_for(span) == future_status::timeout) cout << '.' << flush;
 
     int pos = result.get();
 
@@ -49,5 +69,6 @@ int main(int argc, char* argv[]) {
     else
         cout << "\nPattern found at " << pos << "\n";
 
+    worker.join();
     return 0;
 }
