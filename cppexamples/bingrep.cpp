@@ -22,7 +22,6 @@ void scanfile(const char* filename, const pattern& pat, promise<int>& p) {
             auto end = buf.begin() + f.gcount();
             auto pos = search(buf.begin(), end, pat.begin(), pat.end());
             if (pos != end) {
-                cout << begin << " " << pos - buf.begin() << " " <<  end - buf.begin();
                 p.set_value(begin + (pos - buf.begin()));
                 return;
             }
@@ -51,7 +50,7 @@ int main(int argc, char* argv[]) {
             return -3;
         }
 
-        pat.push_back(stoul(string(byte), nullptr, 16));
+        pat.push_back(stoul(byte, nullptr, 16));
     }
 
     promise<int> p;
