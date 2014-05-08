@@ -3,6 +3,8 @@
 
 \input{../common/setup.tex}
 
+\newcommand\strong\textbf
+
 \title{Introduction to Akka}
 
 \author{Mikhail Limanskiy}
@@ -28,6 +30,20 @@ First public release 0.5 was announced in January of 2010. Current release 2.3.2
 \end{frame}
 
 \begin{frame}{Actors Model}
+The Actor model adopts the philosophy that everything is an \emph{actor}.  In Akka all \linline{Actor}s
+live in \linline{ActorSystem}.\\~\\
+
+Actor can:
+\begin{itemize}
+\item handle a message from it's mailbox
+\item send message to another actors
+\item create other actors
+\item watch if the child actor is dead and recreate it
+\end{itemize}
+Actors interacts with each other \strong{only} by sending messages.\\~\\
+
+Actors are executed concurrently.  It allows to run actors not only on different CPUs, but on the
+different hosts in the network.
 \end{frame}
 
 \begin{frame}{The end}
