@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     vector<pair<const char*, future<string>>> results;
 
     for (int i = 0; i < argc; ++i)
-        results.push_back(make_pair(argv[i], async(getPage, argv[i])));
+        results.emplace_back(make_pair(argv[i], async(getPage, argv[i])));
 
     for (auto &r : results)
         cout << r.first << ": " << r.second.get().substr(0, 200) << "\n";
