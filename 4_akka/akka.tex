@@ -76,6 +76,7 @@ It has two main methods to send messages:
 \begin{itemize}
 \item \linline{!} -- send message and forget (also known as \linline{tell}).
 \item \linline{?} -- send message and get \linline{Future} for result (also known as \linline{ask}).
+\item \linline{pipeTo} -- send future result.
 \end{itemize}
 \begin{example}
 \begin{lstlisting}
@@ -84,6 +85,16 @@ val hello = system.actorOf(Props[Hello])
 hello ! "World"
 \end{lstlisting}
 \end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Behaviours}
+You can change actor behaviour on runtime by switching to another message handling function instead
+of receive. Use following \linline{context} methods:
+\begin{itemize}
+\item \linline{become(behavior:Receive,discardOld:Boolean=true)}
+\item \linline{unbecome(): Unit}
+\end{itemize}
 \end{frame}
 
 \begin{frame}{The end}
