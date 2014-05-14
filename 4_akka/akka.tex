@@ -88,13 +88,145 @@ hello ! "World"
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Behaviours}
-You can change actor behaviour on runtime by switching to another message handling function instead
+\frametitle{Behaviors}
+You can change actor behavior on runtime by switching to another message handling function instead
 of receive. Use following \linline{context} methods:
 \begin{itemize}
 \item \linline{become(behavior:Receive,discardOld:Boolean=true)}
 \item \linline{unbecome(): Unit}
 \end{itemize}
+
+It's quite useful to save state in partially applied parameters of function returns \linline{Receive}.
+\begin{example}
+\begin{lstlisting}
+def receive = {
+  case DieAfterFiveEvents =>
+    context become counter(5)
+}
+
+def counter(n: Integer): Receive = {
+  case e =>
+    if (n == 0) context stop self
+    else context become counter(n - 1)
+    // do something
+}
+\end{lstlisting}
+\end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Code example}
+\begin{lstlisting}[name=person]
+object Person {
+  case class Start(left: List[ActorRef])
+  case class Introduce(name: String)
+  case class Bye(who: ActorRef)
+  case object SaySomething
+  case object AskTime
+}
+
+class Person(name: String) extends Actor {
+
+  import Person._
+  import context.dispatcher
+  import akka.pattern.ask
+
+  implicit val timeout = Timeout(100.millis)
+
+  def receive = {
+    case Start(lst) =>
+      val d = Random.nextInt(5)
+      context.system.scheduler.scheduleOnce(d.seconds, self, SaySomething)
+      context become speaking(3, lst.toSet - self)
+  }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Code example, part 2}
+\begin{lstlisting}
+  def speaking(c: Int, persons: Set[ActorRef]): Receive = {
+    case Introduce(n) => sender ! s"Nice to meet you, $n! I'm $name"
+
+    case AskTime =>
+      val time = new Date
+      sender ! s"I'm $name, it's $time"
+
+    case Bye(a) =>
+      val left = persons - a
+      if (left.isEmpty) context.system.shutdown
+      else context become speaking(c, left)
+
+    case SaySomething =>
+      if (c > 0) {
+        val msg = if (Random.nextBoolean) {
+          println(s"Hello! My name is $name")
+          Introduce(name)
+        } else {
+          println(s"I'm $name. What time is it?")
+          AskTime
+        }
+        val a = persons.toList(Random.nextInt(persons.size))
+        val f = a ? msg
+        f.onSuccess { case reply =>
+          println(reply)
+          val d = Random.nextInt(5)
+          context.system.scheduler.scheduleOnce(d.seconds, self, SaySomething)
+          context become speaking(c - 1, persons)
+        }
+      } else {
+        println("Bye-bye from " +  name)
+        persons foreach (_ ! Bye(self))
+        context.stop(self)
+      }
+  }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Starting example actors}
+\begin{lstlisting}
+import akka.actor._
+
+object Main extends App {
+  val names = List("John", "Paul", "George", "Ringo")
+
+  val system = ActorSystem("Beatles")
+
+  val actors = names.map(name => system.actorOf(Props(classOf[Person], name)))
+
+  actors foreach (_ ! Person.Start(actors))
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Death watch}
+Sometimes actors can fail, or stop. It is possible to notify one actor about another actor
+termination using \linline{context.watch} / \linline{context.unwatch} methods.
+\begin{lstlisting}
+class Foo(barProps: Props) extends Actor {
+  val bar = context.actorOf(barProps)
+  context.watch(bar)
+
+  def receive = {
+    ...
+    case Terminated(a) => println("received terminated")
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Supervision}
+Each actor supervise it's children.  In case of exception in child it can perform some action,
+depends on current supervisor strategy:
+\begin{enumerate}
+\item Resume. Subordinate continue running keeping it's state.
+\item Restart. Subordinate is restarted clearing out it's state.
+\item Stop. Subordintate is stopped permanently.
+\item Escalate. Stops supervisor itself, pass error to parent.
+\end{enumerate}
 \end{frame}
 
 \begin{frame}{The end}
