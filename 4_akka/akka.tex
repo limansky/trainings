@@ -50,7 +50,9 @@ different hosts in the network.
 \frametitle{Actor class}
 The \linline{Actor} class is abstract base for all actors. Main methods are:
 \begin{itemize}
-  \item \linline{receive: PartialFunction[Any, Unit]} -- abstract method handling incoming messages.
+  \item \linline{receive: Receive} -- abstract method handling incoming messages one by one
+    from actor mailbox
+    (where \linline{type Receive = PartialFunction[Any, Unit]}).
   \item \linline{self: ActorRef} -- returns self reference
   \item \linline{sender: ActorRef} -- reference to actor of the last received message.
   \item \linline{context: ActorContext} -- provides actor context.
@@ -144,42 +146,42 @@ class Person(name: String) extends Actor {
 
 \begin{frame}[fragile]
 \frametitle{Code example, part 2}
-\begin{lstlisting}
-  def speaking(c: Int, persons: Set[ActorRef]): Receive = {
-    case Introduce(n) => sender ! s"Nice to meet you, $n! I'm $name"
+\begin{lstlisting}[name=person]
+def speaking(c: Int, persons: Set[ActorRef]): Receive = {
+  case Introduce(n) => sender ! s"Nice to meet you, $n! I'm $name"
 
-    case AskTime =>
-      val time = new Date
-      sender ! s"I'm $name, it's $time"
+  case AskTime =>
+    val time = new Date
+    sender ! s"I'm $name, it's $time"
 
-    case Bye(a) =>
-      val left = persons - a
-      if (left.isEmpty) context.system.shutdown
-      else context become speaking(c, left)
+  case Bye(a) =>
+    val left = persons - a
+    if (left.isEmpty) context.system.shutdown
+    else context become speaking(c, left)
 
-    case SaySomething =>
-      if (c > 0) {
-        val msg = if (Random.nextBoolean) {
-          println(s"Hello! My name is $name")
-          Introduce(name)
-        } else {
-          println(s"I'm $name. What time is it?")
-          AskTime
-        }
-        val a = persons.toList(Random.nextInt(persons.size))
-        val f = a ? msg
-        f.onSuccess { case reply =>
-          println(reply)
-          val d = Random.nextInt(5)
-          context.system.scheduler.scheduleOnce(d.seconds, self, SaySomething)
-          context become speaking(c - 1, persons)
-        }
+  case SaySomething =>
+    if (c > 0) {
+      val msg = if (Random.nextBoolean) {
+        println(s"Hello! My name is $name")
+        Introduce(name)
       } else {
-        println("Bye-bye from " +  name)
-        persons foreach (_ ! Bye(self))
-        context.stop(self)
+        println(s"I'm $name. What time is it?")
+        AskTime
       }
-  }
+      val a = persons.toList(Random.nextInt(persons.size))
+      val f = a ? msg
+      f.onSuccess { case reply =>
+        println(reply)
+        val d = Random.nextInt(5)
+        context.system.scheduler.scheduleOnce(d.seconds, self, SaySomething)
+        context become speaking(c - 1, persons)
+      }
+    } else {
+      println("Bye-bye from " +  name)
+      persons foreach (_ ! Bye(self))
+      context.stop(self)
+    }
+}
 \end{lstlisting}
 \end{frame}
 
@@ -227,11 +229,46 @@ depends on current supervisor strategy:
 \item Stop. Subordintate is stopped permanently.
 \item Escalate. Stops supervisor itself, pass error to parent.
 \end{enumerate}
+You can override supervision strategy in your actor:
+\begin{lstlisting}
+override val supervisorStrategy =
+  OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
+    case _: ArithmeticException => Resume
+    case _: NullPointerException => Restart
+    case _: IllegalArgumentException => Stop
+    case _: Exception => Escalate
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Routing}
+Sometimes you need one master actor and several workers.  Routers allows you to have one
+entry point for workers pool.
+\begin{lstlisting}
+val router: ActorRef = context.actorOf(RoundRobinPool(3).props(Props[Worker]))
+router ! "Handle me!"
+\end{lstlisting}
+There are several predefined routing strategies, but you can implement your own one.
+\begin{itemize}
+\item Round-robin
+\item Random
+\item Smallest mailbox
+\item Broadcast
+\item Scatter-Gather (send to all, take first)
+\item Consistent hashing
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{IO}
 \end{frame}
 
 \begin{frame}{The end}
 \centering
 \textbf{That's all folks!}
+
+Code examples are available at \url{http://github.com/limansky/trainings}
 \end{frame}
 
 \end{document}
