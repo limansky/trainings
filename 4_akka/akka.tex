@@ -261,7 +261,59 @@ There are several predefined routing strategies, but you can implement your own 
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{IO}
+\frametitle{Network IO}
+Akka IO package was developed in collaboration between Akka and \href{http://spray.io}{spray.io} teams. 
+It's completely actor based. Every IO driver has a special actor called \emph{manager}:
+\linline{val manager = IO(Tcp)}.
+
+\begin{example}
+\begin{lstlisting}
+import java.net.InetSocketAddress
+import akka.io.{IO, Tcp}
+import akka.util.ByteString
+
+class Client(addr: InetSocketAddress) extends Actor {
+  import Tcp._
+  import context.system
+
+  IO(Tcp) ! Connect(addr)
+
+  def receive = {
+    case CommandFailed(_: Connect) => context stop self
+
+    case Connected(remote, local) =>
+      val conn = sender()
+      conn ! Register(self)
+      context become {
+        case Received(data) => println("Got: " + data.utf8String)
+
+        case data: ByteString => conn ! Write(data)
+
+        case "close" => conn ! Close
+      }
+  }
+}
+\end{lstlisting}
+\end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{TCP server example}
+\begin{lstlisting}
+class Server extends Actor {
+  import Tcp._
+  import context.system
+
+  IO(Tcp) ! Bind(self, new InetSocketAddress("localhost", 12345))
+
+  def receive = {
+    case Connected(_, _) =>
+      val handler = context.actorOf(Props[HelloHandler])
+
+  }
+}
+
+\end{lstlisting}
 \end{frame}
 
 \begin{frame}{The end}
