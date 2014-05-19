@@ -309,10 +309,18 @@ class Server extends Actor {
   def receive = {
     case Connected(_, _) =>
       val handler = context.actorOf(Props[HelloHandler])
-
+      sender ! Register(handler)
   }
 }
 
+class HelloHandler extends Actor {
+  import Tcp._
+
+  def receive = {
+    case Received(_) => sender ! Write(ByteString("Hello!"))
+    case PeerClosed => context stop self
+  }
+}
 \end{lstlisting}
 \end{frame}
 
