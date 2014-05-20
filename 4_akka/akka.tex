@@ -74,7 +74,7 @@ You shall never create actors using \linline{new}. You need use \linline{actorOf
 \linline{Props} class specify which actor will be created.\\~\\
 
 As result you will receive \linline{ActorRef} instance which is a proxy object for the real actors.
-It has two main methods to send messages:
+It has methods to send messages:
 \begin{itemize}
 \item \linline{!} -- send message and forget (also known as \linline{tell}).
 \item \linline{?} -- send message and get \linline{Future} for result (also known as \linline{ask}).
@@ -319,6 +319,47 @@ class HelloHandler extends Actor {
   def receive = {
     case Received(_) => sender ! Write(ByteString("Hello!"))
     case PeerClosed => context stop self
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Actor path and selection}
+Since actors in Akka has hierarchy it is possible to create unique path for each actor.
+For example: \linline{akka://MySystem/user/actorA/actorB}. You can also use relative paths
+and paths for current context: \linline{../actorC} or \linline{/user/actorA/actorC}.\\~\\
+
+Having actor path you can send message to the actor:
+\begin{lstlisting}
+context.actorSelection("/user/myWorker") ! "hello"
+
+context.actorSelection("../*") ! NotifyAll
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Remoting}
+You can also select actors from remote actor system:
+\begin{lstlisting}
+val remote = context.actorSelection(
+  "akka.tcp://OtherSystem@192.168.1.2:2552/user/service")
+
+remote ! "Hello remote"
+\end{lstlisting}
+To make this work you need to set actor provider to \linline{akka.remote.RemoteActorRefProvider}
+in your application.conf file:
+\begin{lstlisting}
+akka {
+  actor {
+    provider = "akka.remote.RemoteActorRefProvider"
+  }
+  remote {
+    enabled-transports = ["akka.remote.netty.tcp"]
+    netty.tcp {
+      hostname = "192.168.1.1"
+      port = 2552
+    }
   }
 }
 \end{lstlisting}
