@@ -29,11 +29,11 @@ class Person(name: String) extends Actor {
 
   def speaking(c: Int, persons: Set[ActorRef]): Receive = {
     case Introduce(n) => 
-      sender ! s"Nice to meet you, $n! I'm $name"
+      sender ! s"Nice to meet you, $n! I'm $name."
 
     case AskTime =>
       val time = new Date
-      sender ! s"I'm $name, it's $time"
+      sender ! s"I'm $name, it's $time."
 
     case Bye(a) =>
       val left = persons - a
@@ -45,7 +45,7 @@ class Person(name: String) extends Actor {
     case SaySomething =>
       if (c > 0) {
         val msg = if (Random.nextBoolean) {
-          println(s"Hello! My name is $name")
+          println(s"Hello! My name is $name.")
           Introduce(name)
         } else {
           println(s"I'm $name. What time is it?")
