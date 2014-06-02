@@ -2,11 +2,13 @@
 \definecolor{sh_comment}{rgb}{0.12, 0.38, 0.18 } %adjusted, in Eclipse: {0.25, 0.42, 0.30 } = #3F6A4D
 \definecolor{sh_keyword}{rgb}{0.37, 0.08, 0.25}  % #5F1441
 \definecolor{sh_string}{rgb}{0.06, 0.10, 0.98} % #101AF9
+\definecolor{links}{HTML}{2A1BFF}
 
 \usepackage[lighttt]{lmodern}
 
 \usepackage{hyperref}
 \usepackage{listings}
+\usepackage{ccicons}
 
 % "define" Scala
 \lstdefinelanguage{Scala}{
@@ -41,5 +43,7 @@
   lineskip=-0.3em,
   escapebegin={\lstsmallmath}, escapeend={\lstsmallmathend}
 }
+
+\hypersetup{colorlinks,linkcolor=,urlcolor=links}
 
 \def\linline{\lstinline[basicstyle=\ttfamily]}
