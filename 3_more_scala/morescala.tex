@@ -248,15 +248,25 @@ public <T extends Foo> T getByType(List<Foo> foos, Class<T> clazz) {
 \frametitle{Type erasure affects Scala}
 This code will compile with warning, but not work:
 \begin{lstlisting}
-class Base()
-class Child1() extends Base
-class Child2() extends Base
-
-def foo(item: Option[Base]) = item match {
-  case Some(Child1) => println("child1")
-  case Some(Child2) => println("child2")
-  case None         => println("none")
+def foo(item: Option[Any]) = item match {
+  case t: Option[Int] => println("int")
+  case t: Option[Boolean] => println("bool")
+  case _ => println("other")
 }
+foo(Some(false))
+\end{lstlisting}
+\begin{lstlisting}
+[info] Compiling 1 Scala source to /home/limansky/trainings/examples/3_morescala/target/scala-2.11/classes\ldots
+[warn] /home/limansky/trainings/examples/3_morescala/src/main/scala/Reflect.scala:3: non-variable type argument Int in type pattern Option[Int] is unchecked since it is eliminated by erasure
+[warn]     case t: Option[Int] => println("int")
+[warn]             ^
+[warn] /home/limansky/trainings/examples/3_morescala/src/main/scala/Reflect.scala:4: non-variable type argument Boolean in type pattern Option[Boolean] is unchecked since it is eliminated by erasure
+[warn]     case t: Option[Boolean] => println("bool")
+[warn]             ^
+[warn] /home/limansky/trainings/examples/3_morescala/src/main/scala/Reflect.scala:4: unreachable code
+[warn]     case t: Option[Boolean] => println("bool")
+[warn]                                       ^
+[warn] three warnings found
 \end{lstlisting}
 \end{frame}
 
