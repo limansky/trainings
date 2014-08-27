@@ -218,6 +218,38 @@ object Calculator extends App with CalcParser {
 \end{lstlisting}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Calculator without model}
+
+We can also create calculator without any model, returning doubles and functions:
+
+\begin{lstlisting}
+import scala.util.parsing.combinator.JavaTokenParsers
+
+trait SimpleCalc extends JavaTokenParsers {
+  def num: Parser[Double] = floatingPointNumber ^^ (x => x.toDouble)
+  def plus: Parser[Double => Double] = "+" ~> term ^^ (x => _ + x)
+  def minus: Parser[Double => Double] = "-" ~> term ^^ (x => _ - x)
+  def times: Parser[Double => Double] = "*" ~> factor ^^ (x => _ * x)
+  def div: Parser[Double => Double] = "/" ~> factor ^^ (x => _ / x)
+  def sum: Parser[Double] = term ~ rep(plus | minus) ^^ {
+      case a ~ b => b.foldLeft(a)((i, f) => f(i))
+  }
+  def term: Parser[Double] = factor ~ rep(times | div) ^^ {
+      case a ~ b => b.foldLeft(a)((i, f) => f(i))
+  }
+  def factor = num | "(" ~> sum <~ ")"
+}
+
+object CalcNoTree extends App with SimpleCalc {
+  parseAll(sum, args.mkString) match {
+    case Success(e, _) => println("Result: " + e)
+    case fail: NoSuccess    => println("Parsing failed: " + fail.msg)
+  }
+}
+\end{lstlisting}
+\end{frame}
+
 \section{Reflection}
 
 \begin{frame}[fragile]
@@ -246,7 +278,7 @@ public <T extends Foo> T getByType(List<Foo> foos, Class<T> clazz) {
 
 \begin{frame}[fragile]
 \frametitle{Type erasure affects Scala}
-This code will compile with warning, but not work:
+This code will compile with warnings, but not work:
 \begin{lstlisting}
 def foo(item: Option[Any]) = item match {
   case t: Option[Int] => println("int")
@@ -255,18 +287,16 @@ def foo(item: Option[Any]) = item match {
 }
 foo(Some(false))
 \end{lstlisting}
-\begin{lstlisting}
-[info] Compiling 1 Scala source to /home/limansky/trainings/examples/3_morescala/target/scala-2.11/classes\ldots
-[warn] /home/limansky/trainings/examples/3_morescala/src/main/scala/Reflect.scala:3: non-variable type argument Int in type pattern Option[Int] is unchecked since it is eliminated by erasure
-[warn]     case t: Option[Int] => println("int")
-[warn]             ^
-[warn] /home/limansky/trainings/examples/3_morescala/src/main/scala/Reflect.scala:4: non-variable type argument Boolean in type pattern Option[Boolean] is unchecked since it is eliminated by erasure
-[warn]     case t: Option[Boolean] => println("bool")
-[warn]             ^
-[warn] /home/limansky/trainings/examples/3_morescala/src/main/scala/Reflect.scala:4: unreachable code
-[warn]     case t: Option[Boolean] => println("bool")
-[warn]                                       ^
-[warn] three warnings found
+\begin{lstlisting}[breaklines=true]
+<console>:8: warning: non-variable type argument Int in type pattern Option[Int] is unchecked since it is eliminated by erasure
+  case t: Option[Int] => println("int")
+          ^
+<console>:9: warning: non-variable type argument String in type pattern Option[String] is unchecked since it is eliminated by erasure
+  case t: Option[String] => println("bool")
+          ^
+<console>:9: warning: unreachable code
+  case t: Option[String] => println("bool")
+                                   ^
 \end{lstlisting}
 \end{frame}
 

@@ -299,6 +299,31 @@ There are several predefined routing strategies, but you can implement your own 
 \end{frame}
 
 \begin{frame}[fragile]
+\frametitle{Agents. Sharing state}
+Akka agents is a shared mutable state holders.  Agents provide synchronous reading and asynchronous updates.
+\begin{lstlisting}[name=agents]
+val a = Agent(4)
+println(a())
+
+a send 34
+a send (_ + 8)
+\end{lstlisting}
+It's also possible to get \linline{Future} with updated value using \linline{alter}:
+\begin{lstlisting}[name=agents]
+val f: Future[Int] = a alter (_ * 5)
+\end{lstlisting}
+In addition you can use monadic syntax:
+\begin{lstlisting}[name=agents]
+val b = a map (_ - 10)
+
+val c = for {
+    v1 <- a
+    v2 <- b
+} yield v1 + v2
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{Network IO}
 Akka IO package was developed in collaboration between Akka and \href{http://spray.io}{spray.io} teams. 
 It's completely actor based. Every IO driver has a special actor called \emph{manager}:
