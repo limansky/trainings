@@ -300,12 +300,41 @@ foo(Some(false))
 \end{lstlisting}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Reflection universes}
+Scala reflection API contains two universes: Runtime and Compile-time.
+
+\begin{itemize}
+\item Runtime reflection is used to get class information at program runtime. It's a same type of reflection as in Java.
+\item Compile-time reflection allows you to get type information during compilation, and is used with Scala Macros.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Obtaining runtime type}
+\begin{lstlisting}
+def foo[T: TypeTag](item: Option[T]) = {
+  val tt = typeOf[T]
+  item match {
+    case t if tt =:= typeOf[Boolean] => println("a bool")
+    case t if tt =:= typeOf[Int]     => println("an int")
+    case t if tt <:< typeOf[Seq[_]]  => println(s"a sequence ($tt)")
+    case _                           => println("other")
+  }
+}
+
+foo(Some(5)) // prints "a bool"
+foo(Some(List(5,2))) // prints "a sequence (List[Int])"
+\end{lstlisting}
+\end{frame}
+
 \begin{frame}{Bibliography}
 \begin{thebibliography}{00}
 \bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
 \emph{Programming in Scala},
 Artima, 2nd edition, 2011
 \bibitem{erasure}Java\texttrademark  Tutorials: \emph{Type erasure}, \url{http://docs.oracle.com/javase/tutorial/java/generics/erasure.html}
+\bibitem{reflect}Heather Miller, Eugene Burmako, Philipp Haller: \emph{Scala reflection tutorial}, \url{http://docs.scala-lang.org/overviews/reflection/overview.html}
 \end{thebibliography}
 \end{frame}
 

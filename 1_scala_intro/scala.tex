@@ -284,13 +284,12 @@ println("hello" <||> "world")
   \end{itemize}
   \begin{example}
 \begin{lstlisting}
-val lst = List(2, 3, 5, 26, 7, 4, 13)
+class Updatable[T](v: T) {
+  def updated(f: T => T) = new Updatable(f(v))
+}
 
-val oddOnly = lst.filter(x => x % 2 == 1)
-
-val lesTenDbl = lst.filter(_ < 10).map(_ * 2)
-
-val sqsum = lst.foldLeft(0)((a, i) => a + i * i)
+val a = new Updatable(10)
+val b = a.updated(_ + 5) // Updatable(15)
 \end{lstlisting}
   \end{example}
 \end{frame}
@@ -324,10 +323,76 @@ This allows function types be compatible to each other.
 \begin{lstlisting}
 def process(f: ChildP => BaseR)
 
+def foo(v: BaseP): ChildR = { ... }
+
 // We can call process with compatible type
-process(t: BaseP => ChildR = new ChildR)
+process(foo)
 \end{lstlisting}
 \end{example}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Collection framework}
+Collection framework current implementation was introduced in Scala 2.8.  It provides two implementations:
+
+\begin{itemize}
+\item Immutable.  Default collections.  Once created it cannot be changed.
+\item Mutable.  Has modification operations with side effects.
+\end{itemize}
+
+Also you can use Java collections, but Scala collections looks more useful, and provide lot of functional features.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Collections example}
+\begin{lstlisting}
+val lst = List(2, 3, 5, 26, 7, 4, 13)
+
+val oddOnly = lst.filter(x => x % 2 == 1)
+
+val lesTenDbl = lst.filter(_ < 10).map(_ * 2)
+
+val sqsum = lst.foldLeft(0)((a, i) => a + i * i)
+
+val other = List(5,12,6,42)
+val result = lst.zip(other).map(v => v._1 + v._2).sorted
+result.zipWithIndex.foreach(c => println(s"${c._2}. ${c._1}")
+
+case class Person(name: String, age: Int)
+val people = List(Person("Bob", 25), Person("Alice", 22))
+println("Sorted by age:" + people.sortBy(_.age))
+println("Longest name:" + people.maxBy(_.name.length))
+
+val peopleByAge = people.groupBy(_.age) // Map[Int, List[Person]]
+
+val (young, old) = people.partition(_.age < 25) // (List[Person], List[Person])
+
+var words = Map.empty[String, Int]
+words += "Word" -> 5
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Streams}
+Stream is a \emph{lazy} list where elements evaluated only when they are needed. \linline{#::} constructs stream
+from it's head and tail.  Streams can be used to generate endless sequences.
+
+\begin{lstlisting}
+val rand = {
+  def iter(): Stream[Int] = Random.nextInt #:: iter
+  iter
+}
+
+rand takeWhile (_ > 100) foreach println
+
+val evens = {
+  def it(x: Int): Stream[Int] = x #:: it(x+2)
+  it(0)
+}
+
+val fibs: Stream[BigInt] = 0 #:: 1 #:: fibs.zip(fibs.tail).map(x => x._1 + x._2)
+\end{lstlisting}
 
 \end{frame}
 
