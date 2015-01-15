@@ -1,0 +1,110 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+
+\input{../common/setup.tex}
+
+\title{Scala reflection and macros}
+
+\author{Mikhail Limanskiy}
+
+\institute{SymphonyTeleca}
+
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\section{Reflection}
+
+\begin{frame}[fragile]
+\frametitle{Java\texttrademark generics limitations}
+
+In Java all generic type information is removed in compile time \cite{erasure}.  As result, there no type info for
+parametrized types in JVM.  As result you cannot use type parameters for type checks or instantiation:
+
+\begin{lstlisting}[language=Java]
+public <E> void append(List<E> list, Class<E> cls) throws Exception {
+//  E elem = new E(); // will not compile
+    E elem = cls.newInstance();   // OK
+    list.add(elem);
+}
+
+public <T extends Foo> T getByType(List<Foo> foos, Class<T> clazz) {
+    List<T> result = new ArrayList<>();
+    for (Foo foo : foos) {
+//      if (foo instanceOf T) result.add(foo);  // will not compile
+        if (clazz.instanceOf(foo)) result.add(foo);
+    }
+    return result;
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type erasure affects Scala}
+This code will compile with warnings, but not work:
+\begin{lstlisting}
+def foo(item: Option[Any]) = item match {
+  case t: Option[Int] => println("int")
+  case t: Option[Boolean] => println("bool")
+  case _ => println("other")
+}
+foo(Some(false))
+\end{lstlisting}
+\begin{lstlisting}[breaklines=true]
+<console>:8: warning: non-variable type argument Int in type pattern Option[Int] is unchecked since it is eliminated by erasure
+  case t: Option[Int] => println("int")
+          ^
+<console>:9: warning: non-variable type argument String in type pattern Option[String] is unchecked since it is eliminated by erasure
+  case t: Option[String] => println("bool")
+          ^
+<console>:9: warning: unreachable code
+  case t: Option[String] => println("bool")
+                                   ^
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reflection universes}
+Scala reflection API contains two universes: Runtime and Compile-time.
+
+\begin{itemize}
+\item Runtime reflection is used to get class information at program runtime. It's a same type of reflection as in Java.
+\item Compile-time reflection allows you to get type information during compilation, and is used with Scala Macros.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Obtaining runtime type}
+\begin{lstlisting}
+def foo[T: TypeTag](item: Option[T]) = {
+  val tt = typeOf[T]
+  item match {
+    case t if tt =:= typeOf[Boolean] => println("a bool")
+    case t if tt =:= typeOf[Int]     => println("an int")
+    case t if tt <:< typeOf[Seq[_]]  => println(s"a sequence ($tt)")
+    case _                           => println("other")
+  }
+}
+
+foo(Some(5)) // prints "a bool"
+foo(Some(List(5,2))) // prints "a sequence (List[Int])"
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Bibliography}
+\begin{thebibliography}{00}
+\bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
+\emph{Programming in Scala},
+Artima, 2nd edition, 2011
+\bibitem{erasure}Java\texttrademark  Tutorials: \emph{Type erasure}, \url{http://docs.oracle.com/javase/tutorial/java/generics/erasure.html}
+\bibitem{reflect}Heather Miller, Eugene Burmako, Philipp Haller: \emph{Scala reflection tutorial}, \url{http://docs.scala-lang.org/overviews/reflection/overview.html}
+\end{thebibliography}
+\end{frame}
+
+\input{../common/theend.tex}
+
+\end{document}

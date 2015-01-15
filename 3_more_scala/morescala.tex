@@ -4,7 +4,7 @@
 \input{../common/setup.tex}
 
 \title{Advanced Scala programming}
-\subtitle{extractors, reflection, macros, parsers}
+\subtitle{extractors, parsers}
 
 \author{Mikhail Limanskiy}
 
@@ -250,82 +250,49 @@ object CalcNoTree extends App with SimpleCalc {
 \end{lstlisting}
 \end{frame}
 
-\section{Reflection}
+\section{String interpolation}
 
 \begin{frame}[fragile]
-\frametitle{Java\texttrademark generics limitations}
+\frametitle{String interpolation}
 
-In Java all generic type information is removed in compile time \cite{erasure}.  As result, there no type info for
-parametrized types in JVM.  As result you cannot use type parameters for type checks or instantiation:
+String interpolation is a powerful feature available in Scala since 2.10.  It allows to embed variable
+references in \emph{processed} string literals.
 
-\begin{lstlisting}[language=Java]
-public <E> void append(List<E> list, Class<E> cls) throws Exception {
-//  E elem = new E(); // will not compile
-    E elem = cls.newInstance();   // OK
-    list.add(elem);
-}
-
-public <T extends Foo> T getByType(List<Foo> foos, Class<T> clazz) {
-    List<T> result = new ArrayList<>();
-    for (Foo foo : foos) {
-//      if (foo instanceOf T) result.add(foo);  // will not compile
-        if (clazz.instanceOf(foo)) result.add(foo);
-    }
-    return result;
-}
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Type erasure affects Scala}
-This code will compile with warnings, but not work:
-\begin{lstlisting}
-def foo(item: Option[Any]) = item match {
-  case t: Option[Int] => println("int")
-  case t: Option[Boolean] => println("bool")
-  case _ => println("other")
-}
-foo(Some(false))
-\end{lstlisting}
-\begin{lstlisting}[breaklines=true]
-<console>:8: warning: non-variable type argument Int in type pattern Option[Int] is unchecked since it is eliminated by erasure
-  case t: Option[Int] => println("int")
-          ^
-<console>:9: warning: non-variable type argument String in type pattern Option[String] is unchecked since it is eliminated by erasure
-  case t: Option[String] => println("bool")
-          ^
-<console>:9: warning: unreachable code
-  case t: Option[String] => println("bool")
-                                   ^
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Reflection universes}
-Scala reflection API contains two universes: Runtime and Compile-time.
-
+String interpolators available out of box:
 \begin{itemize}
-\item Runtime reflection is used to get class information at program runtime. It's a same type of reflection as in Java.
-\item Compile-time reflection allows you to get type information during compilation, and is used with Scala Macros.
+\item \linline{s} allows use variables directly in the string.
+\item \linline{f} provides formating features similar to \linline{printf} function.
+\item \linline{raw} similar to \linline{s}, but doesn't escape literals within the string.
 \end{itemize}
+
+\begin{example}
+\begin{lstlisting}
+val world = "World"
+println(s"Hello $world!")
+
+val employees = Map("Bob" -> 1.8d, "Alice" -> 1.66d, "Carl" -> 1.75d)
+employees.foreach(e => println(f"${e._1}%s is ${e._2}%2.2f meters tall"))
+\end{lstlisting}
+\end{example}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Obtaining runtime type}
+\frametitle{Implementing interpolators}
+
+When Scala compiler found \linline{name"Content"} in your code it transforms it into the same name method call
+of \linline{StringContext} class.  So, to create own interpolator we can create \emph{implicit class} and add
+a new method to \linline{StringContext}.
+
 \begin{lstlisting}
-def foo[T: TypeTag](item: Option[T]) = {
-  val tt = typeOf[T]
-  item match {
-    case t if tt =:= typeOf[Boolean] => println("a bool")
-    case t if tt =:= typeOf[Int]     => println("an int")
-    case t if tt <:< typeOf[Seq[_]]  => println(s"a sequence ($tt)")
-    case _                           => println("other")
+implicit class CapsHelper(val sc: StringContext) extends AnyVal {
+  def caps(args: Any*): String = {
+    sc.s(args: _*).toUpperCase
   }
 }
 
-foo(Some(5)) // prints "a bool"
-foo(Some(List(5,2))) // prints "a sequence (List[Int])"
+println(caps"Hello, $world!")
 \end{lstlisting}
+
 \end{frame}
 
 \begin{frame}{Bibliography}
@@ -333,8 +300,6 @@ foo(Some(List(5,2))) // prints "a sequence (List[Int])"
 \bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
 \emph{Programming in Scala},
 Artima, 2nd edition, 2011
-\bibitem{erasure}Java\texttrademark  Tutorials: \emph{Type erasure}, \url{http://docs.oracle.com/javase/tutorial/java/generics/erasure.html}
-\bibitem{reflect}Heather Miller, Eugene Burmako, Philipp Haller: \emph{Scala reflection tutorial}, \url{http://docs.scala-lang.org/overviews/reflection/overview.html}
 \end{thebibliography}
 \end{frame}
 
