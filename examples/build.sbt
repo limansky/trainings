@@ -1,4 +1,4 @@
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.5"
 
 lazy val root = project in file(".") aggregate (futures, more, akka)
 

@@ -2,6 +2,9 @@ name := "morescala"
 
 version := "0.1"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.5"
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2"
+libraryDependencies ++= Seq(
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3",
+  "org.scala-lang" % "scala-reflect" % scalaVersion.value
+  )

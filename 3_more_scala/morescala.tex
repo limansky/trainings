@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[t]{beamer}
 \usepackage[utf8]{inputenc}
 
 \input{../common/setup.tex}
@@ -54,7 +54,7 @@ sealed abstract class Result[T]
 case class Success[T](value: T) extends Result
 case class Error(message: String) extends Result
 
-def divide(x: Int, y: Int) = 
+def divide(x: Int, y: Int) =
   if (y == 0) Error("Division by 0") else Success(x / y)
 
 divide(25, 7) match {
@@ -97,6 +97,51 @@ def foo(s: String) = s match {
 \end{example}
 \end{frame}
 
+\section{String interpolation}
+
+\begin{frame}[fragile]
+\frametitle{String interpolation}
+
+String interpolation is a powerful feature available in Scala since 2.10.  It allows to embed variable
+references in \emph{processed} string literals.
+
+String interpolators available out of box:
+\begin{itemize}
+\item \linline{s} allows use variables directly in the string.
+\item \linline{f} provides formating features similar to \linline{printf} function.
+\item \linline{raw} similar to \linline{s}, but doesn't escape literals within the string.
+\end{itemize}
+
+\begin{example}
+\begin{lstlisting}
+val world = "World"
+println(s"Hello $world!")
+
+val employees = Map("Bob" -> 1.8d, "Alice" -> 1.66d, "Carl" -> 1.75d)
+employees.foreach(e => println(f"${e._1}%s is ${e._2}%2.2f meters tall"))
+\end{lstlisting}
+\end{example}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implementing interpolators}
+
+When Scala compiler found \linline{name"Content"} in your code it transforms it into the same name method call
+of \linline{StringContext} class.  So, to create own interpolator we can create \emph{implicit class} and add
+a new method to \linline{StringContext}.
+
+\begin{lstlisting}
+implicit class CapsHelper(val sc: StringContext) extends AnyVal {
+  def caps(args: Any*): String = {
+    sc.s(args: _*).toUpperCase
+  }
+}
+
+println(caps"Hello, $world!")
+\end{lstlisting}
+
+\end{frame}
+
 \section{Parsers}
 
 \begin{frame}[fragile]
@@ -130,9 +175,9 @@ trait CSVParser extends RegexParsers {
   def lf = "\n"
   def space = "[ \t]*".r
 
-  def number: Parser[NumCell] = 
+  def number: Parser[NumCell] =
     space ~> """-?\d+(\.\d*)?""".r <~ space ^^ { x => NumCell(x.toDouble) }
-  
+
   def string: Parser[StringCell] = """[^,\n]*""".r ^^ { StringCell }
 
   def cell: Parser[Cell] = number | string
@@ -250,49 +295,195 @@ object CalcNoTree extends App with SimpleCalc {
 \end{lstlisting}
 \end{frame}
 
-\section{String interpolation}
-
 \begin{frame}[fragile]
-\frametitle{String interpolation}
-
-String interpolation is a powerful feature available in Scala since 2.10.  It allows to embed variable
-references in \emph{processed} string literals.
-
-String interpolators available out of box:
-\begin{itemize}
-\item \linline{s} allows use variables directly in the string.
-\item \linline{f} provides formating features similar to \linline{printf} function.
-\item \linline{raw} similar to \linline{s}, but doesn't escape literals within the string.
-\end{itemize}
-
-\begin{example}
+\frametitle{How does it work?}
+Even thought parsers look a bit weird it just a Scala library.  In next slides we will
+implement own combinator parsers library.
 \begin{lstlisting}
-val world = "World"
-println(s"Hello $world!")
+trait LittleParsers {
 
-val employees = Map("Bob" -> 1.8d, "Alice" -> 1.66d, "Carl" -> 1.75d)
-employees.foreach(e => println(f"${e._1}%s is ${e._2}%2.2f meters tall"))
+  type Reader = List[Char]
+
+  sealed abstract class Result[+T]
+  case class Good[+T](r: T, rest: Reader) extends Result[T]
+  case class Bad(msg: String, rest: Reader) extends Result[Nothing]
+
+
+  trait Parser[+T] extends (Reader => Result[T]) { p =>
+    def apply(r: Reader): Result[T]
+
+    ...
+  }
+}
 \end{lstlisting}
-\end{example}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Implementing interpolators}
-
-When Scala compiler found \linline{name"Content"} in your code it transforms it into the same name method call
-of \linline{StringContext} class.  So, to create own interpolator we can create \emph{implicit class} and add
-a new method to \linline{StringContext}.
-
+\frametitle{Single character parser}
+Now we can implement a parser which can parse a single character using predicate:
 \begin{lstlisting}
-implicit class CapsHelper(val sc: StringContext) extends AnyVal {
-  def caps(args: Any*): String = {
-    sc.s(args: _*).toUpperCase
+trait LittleParsers {
+
+  def char(f: Char => Boolean): Parser[Char] = new Parser[Char] {
+    def apply(r: Reader) = r match {
+      case x :: xs =>
+        if (f(x))
+          Good(x, xs)
+        else
+          Bad(s"Unexpected char '$x'", xs)
+      case Nil => Bad("Expected char, but got end of input", Nil)
+    }
   }
 }
+\end{lstlisting}
+\end{frame}
 
-println(caps"Hello, $world!")
+\begin{frame}[fragile]
+\frametitle{What about two characters?}
+Now we can create our first combinator \linline{~} to concatenate two parsers:
+\begin{lstlisting}
+case class ~[+A, +B](a: A, b: B)
+
+trait Parser[+T] { p =>
+  def ~[U](u: => Parser[U]): Parser[T~U] = new Parser[T~U] {
+    def apply(r: Reader) = p(r) match {
+      case Good(x, r1) => u(r1) match {
+        case Good(y, r2) => Good(new ~(x, y), r2)
+        case bad: Bad => bad
+      }
+      case bad: Bad => bad
+    }
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Alternative composition}
+We also need an alternative composition combinator \linline{|}:
+\begin{lstlisting}
+trait Parser[+T] { p =>
+  def |[U >: T](u: => Parser[U]): Parser[U] = new Parser[U] {
+    def apply(r: Reader) = p(r) match {
+      case g: Good[_] => g
+      case _ => u(r)
+    }
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implementing convertor}
+The convertor is pretty easy.  The only thing we need is to apply function to
+the result if parsing was successful:
+\begin{lstlisting}
+trait Parser[+T] { p =>
+
+  def ^^[U](f: T => U): Parser[U] = new Parser[U] {
+    def apply(r: Reader) = p(r) match {
+      case Good(x, rest) => Good(f(x), rest)
+      case bad: Bad => bad
+    }
+  }
+}
 \end{lstlisting}
 
+Now we can implement \linline{~>} and \linline{<~} combinators using \linline{~} and \linline{^^}:
+
+\begin{lstlisting}
+  def ~>[U](u: => Parser[U]): Parser[U] = p ~ u ^^ { case _ ~ y => y }
+
+  def <~[U](u: => Parser[U]): Parser[T] = p ~ u ^^ { case x ~ _ => x }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Repeating combinators}
+The last combinators in our \linline{LittleParsers} are \linline{rep} and \linline{rep1}:
+\begin{lstlisting}
+trait LittleParsers {
+
+  def rep[T](p: Parser[T]): Parser[List[T]] = new Parser[List[T]] {
+    import scala.annotation.tailrec
+
+    def apply(r: Reader) = {
+      @tailrec
+      def process(d: List[T], r: Reader): (List[T], Reader) = p(r) match {
+        case Good(x, r1) => process(x :: d, r1)
+        case _ => (d, r)
+      }
+
+      val (l, rest) = process(Nil, r)
+      Good(l.reverse, rest)
+    }
+  }
+
+  def rep1[T](p: Parser[T]): Parser[List[T]] = new Parser[List[T]] {
+    def apply(r: Reader) = p(r) match {
+      case Good(x, r1) => rep(p)(r1) match {
+        case Good(xs, rest) => Good(x :: xs, rest)
+        case bad: Bad => bad
+      }
+      case bad: Bad => bad
+    }
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Repeating with separators}
+To easily implement \linline{repsep} and \linline{rep1sep} combinators, let define
+method \linline{good} which always succeed with passed value:
+
+\begin{lstlisting}
+  def good[T](t: T): Parser[T] = new Parser[T] {
+    def apply(r: Reader) = Good(t, r)
+  }
+\end{lstlisting}
+
+Now it's possible to define the combinators in terms of existing ones:
+
+\begin{lstlisting}
+  def rep1sep[T, U](p: => Parser[T], u: => Parser[U]) =
+    p ~ rep(u ~> p) ^^ { case x ~ xs => x :: xs }
+
+  def repsep[T, U](p: => Parser[T], u: => Parser[U]) =
+    rep1sep(p,u) | good(Nil)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Calculator on LittleParser}
+Now we have all we need to reimplement calculator using \linline{LittleParser}.
+The only difference, is to simplify the code we'll use ints instead of doubles:
+\begin{lstlisting}
+trait LittleCalcParsers extends LittleParsers {
+
+  def wspchar = char(c => " \t".contains(c))
+  def whitespace = rep(wspchar)
+
+  def digit = char(_.isDigit)
+  def num = (whitespace ~> rep1(digit)) <~ whitespace ^^
+    { case x => x.mkString.toInt }
+
+  def plus: Parser[Int => Int] = char(_ == '+') ~> term ^^ (x => _ + x)
+  def minus: Parser[Int => Int] = char(_ == '-') ~> term ^^ (x => _ - x)
+  def times: Parser[Int => Int] = char(_ == '*') ~> factor ^^ (x => _ * x)
+  def div: Parser[Int => Int] = char(_ == '/') ~> factor ^^ (x => _ / x)
+
+  def sum: Parser[Int] = term ~ rep(plus | minus) ^^
+    { case a ~ b => b.foldLeft(a)((i, f) => f(i)) }
+
+  def term: Parser[Int] = factor ~ rep(times | div) ^^
+    { case a ~ b => b.foldLeft(a)((i, f) => f(i)) }
+
+  def factor = num | char(_ == '(') ~> sum <~ char(_ == ')')
+
+  def parse(s: String) = sum(s.toList)
+}
+\end{lstlisting}
 \end{frame}
 
 \begin{frame}{Bibliography}
