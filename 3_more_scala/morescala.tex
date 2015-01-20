@@ -144,9 +144,53 @@ println(caps"Hello, $world!")
 
 \section{Parsers}
 
+\begin{frame}{Parsers}
+\emph{Parser} is a function which takes an input string and provides some output structure.
+Usually it provides parsed data or error message and unparsed input part.
+
+Assume we have an input string with length $\#input$. The parsing position is indexed as $j$.
+
+Simpliest parser is \emph{empty}.  It accepts empty string and returns current position:
+\begin{equation*}
+empty(j) = {j}
+\end{equation*}
+The next parser is \emph{term x}.  It recognizes terminal \emph{x}.
+\begin{equation*}
+term(x, j) =
+  \begin{cases}
+    \{\}, & j \geq \#input \\
+    \{j+1\}, & j^{th}\text{ element of }input = x \\
+    \{\}, & otherwise
+  \end{cases}
+\end{equation*}
+\end{frame}
+
+\begin{frame}{Parser combinators}
+\emph{Parser combinator} is a high ordered function which takes several parsers and provides a
+new parser.
+
+The ‘alternative’ parser combinator, $\oplus$, applies both of the parsers on the same input
+position j and sums up the results returned by both of the recognizers.
+\begin{equation*}
+(p \oplus q)(j) = p(j) \cup q(j)
+\end{equation*}
+
+Sequencing of parsers is done with the $\circledast$ combinator. It applies the first parser $p$
+to the input position $j$, and if it succeed then applies parser $q$ to the first parser result:
+
+\begin{equation*}
+(p \circledast q)(j) = \bigcup \left\{q(k) : k \in p(j) \right\}
+\end{equation*}
+
+\end{frame}
+
+
 \begin{frame}[fragile]
-\frametitle{Combinatoric parsers}
-Combinatoric parsers is the easy way to build complex parsers from the small parsers blocks.
+\frametitle{Parser combinators in Scala}
+Scala 2.10 and previous versions provides parsers library as a part of standard library.
+In Scala 2.11 parsers were moved to separate library \linline{scala-parser-combinators}.
+
+Library provides several parsers implementations and a set of combinators.
 Main combinators are:
 \begin{itemize}
 \item \linline{~} -- sequential composition
@@ -491,9 +535,10 @@ trait LittleCalcParsers extends LittleParsers {
 \bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
 \emph{Programming in Scala},
 Artima, 2nd edition, 2011
+
+\bibitem{parserwiki}Wikipedia, \emph{Parser combinator}, \url{http://en.wikipedia.org/wiki/Parser_combinator}
 \end{thebibliography}
 \end{frame}
-
 \input{../common/theend.tex}
 
 \end{document}
