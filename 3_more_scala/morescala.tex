@@ -3,6 +3,10 @@
 
 \input{../common/setup.tex}
 
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{tikz-uml}
+
 \title{Advanced Scala programming}
 \subtitle{extractors, parsers}
 
@@ -202,6 +206,29 @@ Main combinators are:
 \item \linline{repsep} -- repeated parser with separator
 \item \linline{^^} -- convert parsed value using function.
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Parsers class hierarchy}
+\begin{tikzpicture}
+\umlsimpleclass[x=2]{Parsers}
+\umlsimpleclass[x=6]{Tokens}
+\umlemptyclass[y=-2]{RegexParsers}
+\umlemptyclass[y=-4]{JavaTokenParsers}
+\umlemptyclass[x=3.5,y=-2]{Scanners}
+\umlemptyclass[x=7,y=-2]{TokenParsers}
+\umlemptyclass[x=3.5,y=-4]{Lexical}
+\umlemptyclass[x=7,y=-4]{StdTokenParsers}
+% \umlemptyclass[x=9,y=-2]{PackratParsers}
+\umlinherit{RegexParsers}{Parsers}
+\umlinherit{Scanners}{Parsers}
+\umlinherit{Scanners}{Tokens}
+\umlinherit{TokenParsers}{Parsers}
+\umlinherit{JavaTokenParsers}{RegexParsers}
+\umlinherit{Lexical}{Scanners}
+\umlinherit{StdTokenParsers}{TokenParsers}
+\umlunicompo{TokenParsers}{Tokens}
+\end{tikzpicture}
 \end{frame}
 
 \begin{frame}[fragile]
