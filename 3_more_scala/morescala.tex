@@ -7,7 +7,7 @@
 \usetikzlibrary{positioning}
 \usepackage{tikz-uml}
 
-\title{Advanced Scala programming}
+\title{Elements of data processing in Scala}
 \subtitle{extractors, parsers}
 
 \author{Mikhail Limanskiy}
@@ -219,11 +219,12 @@ Main combinators are:
 \umlemptyclass[x=7,y=-2]{TokenParsers}
 \umlemptyclass[x=3.5,y=-4]{Lexical}
 \umlemptyclass[x=7,y=-4]{StdTokenParsers}
-% \umlemptyclass[x=9,y=-2]{PackratParsers}
+\umlemptyclass[x=2,y=-5.3]{PackratParsers}
 \umlinherit{RegexParsers}{Parsers}
 \umlinherit{Scanners}{Parsers}
 \umlinherit{Scanners}{Tokens}
 \umlinherit{TokenParsers}{Parsers}
+\umlinherit{PackratParsers}{Parsers}
 \umlinherit{JavaTokenParsers}{RegexParsers}
 \umlinherit{Lexical}{Scanners}
 \umlinherit{StdTokenParsers}{TokenParsers}
