@@ -8,13 +8,13 @@ trait LittleCalcParsers extends LittleParsers {
   def digit = char(_.isDigit)
   def num = (whitespace ~> rep1(digit)) <~ whitespace ^^ { case x => x.mkString.toInt }
 
-  def plus: Parser[Int => Int] = char(_ == '+') ~> term ^^ (x => _ + x)
-  def minus: Parser[Int => Int] = char(_ == '-') ~> term ^^ (x => _ - x)
-  def times: Parser[Int => Int] = char(_ == '*') ~> factor ^^ (x => _ * x)
-  def div: Parser[Int => Int] = char(_ == '/') ~> factor ^^ (x => _ / x)
+  def plus: Parser[Int => Int] = '+' ~> term ^^ (x => _ + x)
+  def minus: Parser[Int => Int] = '-' ~> term ^^ (x => _ - x)
+  def times: Parser[Int => Int] = '*' ~> factor ^^ (x => _ * x)
+  def div: Parser[Int => Int] = '/' ~> factor ^^ (x => _ / x)
   def sum: Parser[Int] = term ~ rep(plus | minus) ^^ { case a ~ b => b.foldLeft(a)((i, f) => f(i)) }
   def term: Parser[Int] = factor ~ rep(times | div) ^^ { case a ~ b => b.foldLeft(a)((i, f) => f(i)) }
-  def factor = num | char(_ == '(') ~> sum <~ char(_ == ')')
+  def factor = num | '(' ~> sum <~ ')'
 
   def parse(s: String) = sum(s.toList)
 }

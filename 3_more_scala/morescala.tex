@@ -9,6 +9,7 @@
 
 \title{Elements of data processing in Scala}
 \subtitle{extractors, parsers}
+\keywords{scala, parser, parser combinator, extractors}
 
 \author{Mikhail Limanskiy}
 
@@ -188,17 +189,31 @@ to the input position $j$, and if it succeed then applies parser $q$ to the firs
 
 \end{frame}
 
-
 \begin{frame}[fragile]
-\frametitle{Parser combinators in Scala}
+\frametitle{Scala parser combinators library}
 Scala 2.10 and previous versions provides parsers library as a part of standard library.
 In Scala 2.11 parsers were moved to separate library \linline{scala-parser-combinators}.
 
+The library provides \emph{domain specific language} (DSL) for parsers combinators.
+Scala supports ``infix notation'' for arity-1 methods, and it makes DSLs much more
+expressive.
+\begin{lstlisting}
+val l = List(1, 2, 3, 5, 8)
+
+val s = l mkString ", " // the same as l.mkString(", ")
+
+val q = l filter (_ % 2 != 0) map (x => x * x) mkString " "
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Parser combinators in Scala}
 Library provides several parsers implementations and a set of combinators.
 Main combinators are:
 \begin{itemize}
 \item \linline{~} -- sequential composition
 \item \linline{|} -- alternative composition
+\item \linline{success(x)} -- always succeed with value \linline{x}
 \item \linline{~>} and \linline{<~} -- sequence ignoring right or left value.
 \item \linline{rep} or \linline{*} -- repeat parser
 \item \linline{rep1} or \linline{+} -- repeat at least once
@@ -558,6 +573,29 @@ trait LittleCalcParsers extends LittleParsers {
 \end{lstlisting}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Adding some implicit magic}
+The \linline{char(_ == 'x')} expresions look bit annoying.  We can rid of them
+using implicit conversions:
+\begin{lstlisting}
+import scala.language.implicitConversions
+
+trait LittleParsers {
+
+  implicit def acceptChar(c: Char) = char(_ == c)
+
+  implicit def acceptString(s: String): Parser[List[Char]] =
+    s.map(c => acceptChar(c) ^^ (x => List(x)))
+     .reduceLeft(_ ~ _ ^^ { case x ~ y => x ++ y })
+}
+\end{lstlisting}
+
+Now we can rewrite \linline{plus} parser as:
+\begin{lstlisting}
+  def plus: Parser[Int => Int] = '+' ~> term ^^ (x => _ + x)
+\end{lstlisting}
+\end{frame}
+
 \begin{frame}{Bibliography}
 \begin{thebibliography}{00}
 \bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
@@ -567,6 +605,7 @@ Artima, 2nd edition, 2011
 \bibitem{parserwiki}Wikipedia, \emph{Parser combinator}, \url{http://en.wikipedia.org/wiki/Parser_combinator}
 \end{thebibliography}
 \end{frame}
+
 \input{../common/theend.tex}
 
 \end{document}

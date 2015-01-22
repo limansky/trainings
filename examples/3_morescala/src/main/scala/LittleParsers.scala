@@ -1,3 +1,5 @@
+import scala.language.implicitConversions
+
 trait LittleParsers {
   
   type Reader = List[Char]
@@ -80,4 +82,10 @@ trait LittleParsers {
   
   def repsep[T, U](p: => Parser[T], u: => Parser[U]) =
     rep1sep(p,u) | good(Nil)
+
+  implicit def acceptChar(c: Char) = char(_ == c)
+
+  implicit def acceptString(s: String): Parser[List[Char]] =
+    s.map(c => acceptChar(c) ^^ (x => List(x)))
+     .reduceLeft(_ ~ _ ^^ { case x ~ y => x ++ y })
 }
