@@ -43,7 +43,7 @@ trait LittleParsers {
 
   def char(f: Char => Boolean): Parser[Char] = new Parser[Char] {
     def apply(r: Reader) = r match { 
-      case x :: xs => if (f(x)) Good(x, xs) else Bad(s"Unexpected char '$x'", xs)
+      case x :: xs => if (f(x)) Good(x, xs) else Bad(s"Unexpected char '$x'", r)
       case Nil => Bad("Expected char, but got end of input", Nil)
     }
   }
