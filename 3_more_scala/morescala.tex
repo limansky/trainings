@@ -33,7 +33,7 @@ using much more complex rules:
 \begin{lstlisting}
 val l = List(1, 8, 4,  2, 5, 12)
 l.sorted find (_ > 3) match {
-  case Some(x) => println("$x is a smallest value greater than 3 in the list")
+  case Some(x) => println(s"$x is a smallest value greater than 3 in the list")
   case None    => println("There are no values greater than 3")
 }
 
@@ -55,15 +55,15 @@ Also, when you define case class:
 \end{itemize}
 \begin{example}
 \begin{lstlisting}
-sealed abstract class Result[T]
-case class Success[T](value: T) extends Result
-case class Error(message: String) extends Result
+sealed abstract class Result[+T]
+case class Success[T](value: T) extends Result[T]
+case class Error(message: String) extends Result[Nothing]
 
 def divide(x: Int, y: Int) =
   if (y == 0) Error("Division by 0") else Success(x / y)
 
 divide(25, 7) match {
-  case Success(r) => println("Result is $r")
+  case Success(r) => println(s"Result is $r")
   case Failure(m) => println(m)
 }
 \end{lstlisting}
@@ -417,7 +417,7 @@ trait LittleParsers {
         if (f(x))
           Good(x, xs)
         else
-          Bad(s"Unexpected char '$x'", xs)
+          Bad(s"Unexpected char '$x'", r)
       case Nil => Bad("Expected char, but got end of input", Nil)
     }
   }
