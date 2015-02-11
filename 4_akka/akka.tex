@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[t]{beamer}
 \usepackage[utf8]{inputenc}
 \usepackage{ccicons}
 
@@ -27,7 +27,7 @@ for concurrency, but it emphasizes actor-based concurrency, with inspiration dra
 
 Akka is written in Scala, but provides bindings both for Scala and Java.\\~\\
 
-First public release 0.5 was announced in January of 2010. Current release 2.3.2 (April 2014).
+First public release 0.5 was announced in January of 2010. Current release 2.3.9 (January 2015).
 \end{frame}
 
 \begin{frame}{Actors Model}
@@ -45,26 +45,6 @@ Actors interacts with each other \strong{only} by sending messages.\\~\\
 
 Actors are executed concurrently.  It allows to run actors not only on different CPUs, but on the
 different hosts in the network.
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Actor class}
-The \linline{Actor} class is abstract base for all actors. Main methods are:
-\begin{itemize}
-  \item \linline{receive: Receive} -- abstract method handling incoming messages one by one
-    from actor mailbox
-    (where \linline{type Receive = PartialFunction[Any, Unit]}).
-  \item \linline{self: ActorRef} -- returns self reference
-  \item \linline{sender: ActorRef} -- reference to actor of the last received message.
-  \item \linline{context: ActorContext} -- provides actor context.
-\end{itemize}
-\begin{lstlisting}
-class Hello extends Actor {
-  def receive = {
-    name: String => println ("Hello, " + name)
-  }
-}
-\end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -91,11 +71,36 @@ hello ! "World"
 \end{frame}
 
 \begin{frame}[fragile]
+\frametitle{Actor class}
+The \linline{Actor} class is abstract base for all actors. Main methods are:
+\begin{itemize}
+  \item \linline{receive: Receive} -- abstract method handling incoming messages one by one
+    from actor mailbox
+    (where \linline{type Receive = PartialFunction[Any, Unit]}).
+  \item \linline{self: ActorRef} -- returns self reference
+  \item \linline{sender: ActorRef} -- reference to actor of the last received message.
+  \item \linline{context: ActorContext} -- provides actor context.
+\end{itemize}
+\begin{lstlisting}
+class Hello extends Actor {
+  var count = 0
+
+  def receive = {
+    name: String => println ("Hello, " + name)
+    amount: Int =>
+      count += amount
+      sender ! count
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{Behaviors}
 You can change actor behavior on runtime by switching to another message handling function instead
 of receive. Use following \linline{context} methods:
 \begin{itemize}
-\item \linline{become(behavior:Receive,discardOld:Boolean=true)}
+\item \linline{become(behavior:Receive, discardOld:Boolean=true)}
 \item \linline{unbecome(): Unit}
 \end{itemize}
 
@@ -111,7 +116,7 @@ def counter(n: Integer): Receive = {
   case e =>
     if (n == 0) context stop self
     else context become counter(n - 1)
-    // do something
+    // do something else
 }
 \end{lstlisting}
 \end{example}
