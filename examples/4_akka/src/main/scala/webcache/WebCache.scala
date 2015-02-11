@@ -3,17 +3,15 @@ package webcache
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.io.IO
-import spray.can.Http
+import akka.http.Http
+import akka.stream.ActorFlowMaterializer
 
-object WebCache extends App {
+
+object WebCache extends App with WebCacheRest {
 
   implicit val system = ActorSystem("adserver")
+  implicit val materializer = ActorFlowMaterializer()
+  override implicit val executor = system.dispatcher
 
-  // create and start our service actor
-  val service = system.actorOf(Props[WebCacheRestActor], "adserver-service")
-
-  // start a new HTTP server on port 8080 with our service actor as the handler
-  IO(Http) ! Http.Bind(service, interface = "0.0.0.0", port = 8080)
-
-
+  Http().bind(interface = "0.0.0.0", port = 8080).startHandlingWith(route)
 }
