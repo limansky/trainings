@@ -3,11 +3,14 @@ package webcache
 import scala.concurrent.ExecutionContextExecutor
 import spray.json.DefaultJsonProtocol
 import akka.http.model.StatusCodes
+import akka.stream.FlowMaterializer
 
+case class AddRequest(url: String, depth: Int)
 case class Resource(id: Int, url: String, cached: Long)
 
 object JsonProtocol extends DefaultJsonProtocol {
   implicit val resourceFormat = jsonFormat3(Resource.apply)
+  implicit val addFormat = jsonFormat2(AddRequest.apply)
 }
 
 trait WebCacheRest {
@@ -17,6 +20,7 @@ trait WebCacheRest {
   import JsonProtocol._
 
   implicit val executor: ExecutionContextExecutor
+  implicit val materializer: FlowMaterializer
 
   val route =
     path("resources") {
@@ -35,5 +39,15 @@ trait WebCacheRest {
           if (ResourceManager.delete(id)) StatusCodes.NoContent else StatusCodes.NotFound
         }
       }
+    } ~
+    path("resource") {
+      put {
+        entity(as[AddRequest]) { r =>
+          complete {
+            ResourceManager.add(r.url, "")
+          }
+        }
+      }
     }
+
 }
