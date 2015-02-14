@@ -28,26 +28,26 @@ trait WebCacheRest {
         ResourceManager.getResources
       }
     } ~
-    path("resource" / IntNumber) { id =>
-      get {
-        complete {
-          ResourceManager.getById(id)
-        }
-      } ~
-      delete {
-        complete {
-          if (ResourceManager.delete(id)) StatusCodes.NoContent else StatusCodes.NotFound
-        }
-      }
-    } ~
-    path("resource") {
-      put {
-        entity(as[AddRequest]) { r =>
+      path("resource" / IntNumber) { id =>
+        get {
           complete {
-            ResourceManager.add(r.url, "")
+            ResourceManager.getById(id)
+          }
+        } ~
+          delete {
+            complete {
+              if (ResourceManager.delete(id)) StatusCodes.NoContent else StatusCodes.NotFound
+            }
+          }
+      } ~
+      path("resource") {
+        put {
+          entity(as[AddRequest]) { r =>
+            complete {
+              ResourceManager.add(r.url, "")
+            }
           }
         }
       }
-    }
 
 }

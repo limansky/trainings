@@ -20,3 +20,4 @@ libraryDependencies ++= {
   )
 }
 
+scalariformSettings

@@ -6,7 +6,6 @@ import akka.io.IO
 import akka.http.Http
 import akka.stream.ActorFlowMaterializer
 
-
 object WebCache extends App with WebCacheRest {
 
   implicit val system = ActorSystem("adserver")

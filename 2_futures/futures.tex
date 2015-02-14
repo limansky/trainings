@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[t]{beamer}
 \usepackage[utf8]{inputenc}
 
 \input{../common/setup.tex}
@@ -59,36 +59,9 @@ trait Future[+T] extends Awaitable[T] {
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Example}
-\begin{lstlisting}
-import scala.io.Source
-import scala.concurrent._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Success, Failure}
-
-object Fetcher extends App {
-  def getPage(url: String): Future[String] = {
-    Future {
-      Source.fromURL(url).mkString
-    }
-  }
-
-  args.foreach { url =>
-    val f = getPage(url)
-
-    f onComplete {
-      case Success(p) => println(url + ": " + p.take(200))
-      case Failure(_) => println("Failed to get content from " + url)
-    }
-  }
-}
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
 \frametitle{Waiting for the result}
 Sometimes you need to block current thread and wait for the future result.
-It can be achieved using \linline{Await.result} method:
+It can be achieved using \linline{Await.result} or \linline{Await.ready} method:
 \begin{example}
 \begin{lstlisting}
 import scala.concurrent._
@@ -99,7 +72,41 @@ def getWeather(date: Date): Future[WeatherReport]
 val report = Await.result(getWeather(new Date), 10.seconds)
 \end{lstlisting}
 \end{example}
+\end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Example}
+\begin{lstlisting}
+import scala.io.Source
+import scala.concurrent._
+import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Success, Failure}
+
+object Fetcher extends App {
+  def getPage(url: String): Future[String] = {
+    Future {
+      Source.fromURL(url).mkString
+    }
+  }
+
+  val tasks = Future.sequence(args.map { url =>
+    val f = getPage(url)
+
+    f onComplete {
+      case Success(p) => println(url + ": " + p.take(200))
+      case Failure(_) => println("Failed to get content from " + url)
+    }
+
+    f
+  })
+
+  Await.ready(tasks, Duration.Inf)
+}
+\end{lstlisting}
+
+Here I'm using \linline{Future.sequence} to transform \linline{List[Future[String]]} to
+\linline{Future[List[String]]}.
 \end{frame}
 
 \begin{frame}[fragile]
@@ -377,9 +384,11 @@ regular GET requiest.
 \begin{lstlisting}[name=multifetch]
 args.toList match {
   case link :: Nil =>
-    getMultipart(link) fallbackTo {
+    val f = getMultipart(link) fallbackTo {
       getSinglePart(link)
-    } onComplete {
+    } 
+    
+    f onComplete {
       case Success(data) =>
         val filename = link.substring(link.lastIndexOf('/') + 1)
         val fs = new FileOutputStream(filename)
@@ -389,6 +398,7 @@ args.toList match {
       case Failure(t) =>
         println(s"Failed to fetch file from $link, because of ${t.getMessage}")
     }
+    Await.ready(f, Duration.Inf)
   case _ => println("Usage: multiget <link>")
 }
 \end{lstlisting}

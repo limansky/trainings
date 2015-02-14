@@ -1,6 +1,8 @@
 import dispatch._, Defaults._
 import java.io.FileOutputStream
-import scala.util.{Success, Failure}
+import scala.util.{ Success, Failure }
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 object MultiGet extends App {
 
@@ -29,7 +31,7 @@ object MultiGet extends App {
       println(s"Have size $size")
       val partSize = size / partsNumber
       val tasks = (0 to partsNumber - 2).map(i => getPart(i * partSize, Some((i + 1) * partSize - 1))) :+
-                  getPart((partsNumber - 1) * partSize, None)
+        getPart((partsNumber - 1) * partSize, None)
       Future.sequence(tasks)
     } map {
       _.toArray.flatten
@@ -38,9 +40,11 @@ object MultiGet extends App {
 
   args.toList match {
     case link :: Nil =>
-      getMultipart(link) fallbackTo {
+      val f = getMultipart(link) fallbackTo {
         getSinglePart(link)
-      } onComplete {
+      }
+
+      f onComplete {
         case Success(data) =>
           val filename = link.substring(link.lastIndexOf('/') + 1)
           val fs = new FileOutputStream(filename)
@@ -50,6 +54,8 @@ object MultiGet extends App {
         case Failure(t) =>
           println(s"Failed to fetch file from $link, because of ${t.getMessage}")
       }
+
+      Await.ready(f, Duration.Inf)
     case _ => println("Usage: multiget <link>")
   }
 }

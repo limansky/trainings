@@ -19,13 +19,13 @@ object ResourceManager {
   }
 
   def getResources(): List[Resource] = {
-    db.withSession { implicit s => 
+    db.withSession { implicit s =>
       cache.list map toResource
     }
   }
 
   def getById(id: Int): Option[Resource] = {
-    db.withSession { implicit s => 
+    db.withSession { implicit s =>
       cache.byId(id).firstOption map toResource
     }
   }
@@ -33,7 +33,7 @@ object ResourceManager {
   def delete(id: Int): Boolean = {
     db.withSession { implicit s =>
       cache.byId(id).firstOption match {
-        case Some(c) => 
+        case Some(c) =>
           cache.byId(id).delete
           true
         case None => false

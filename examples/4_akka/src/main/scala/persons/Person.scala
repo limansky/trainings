@@ -17,7 +17,7 @@ class Person(name: String) extends Actor {
   import Person._
   import context.dispatcher
   import akka.pattern.ask
-  
+
   implicit val timeout = Timeout(100.millis)
 
   def receive = {
@@ -28,7 +28,7 @@ class Person(name: String) extends Actor {
   }
 
   def speaking(c: Int, persons: Set[ActorRef]): Receive = {
-    case Introduce(n) => 
+    case Introduce(n) =>
       sender ! s"Nice to meet you, $n! I'm $name."
 
     case AskTime =>
@@ -37,7 +37,7 @@ class Person(name: String) extends Actor {
 
     case Bye(a) =>
       val left = persons - a
-      if (left.isEmpty) 
+      if (left.isEmpty)
         context.system.shutdown
       else
         context become speaking(c, left)
@@ -53,8 +53,8 @@ class Person(name: String) extends Actor {
         }
         val a = persons.toList(Random.nextInt(persons.size))
         val f = a ? msg
-        f.onSuccess { 
-          case reply => 
+        f.onSuccess {
+          case reply =>
             println(reply)
             val d = Random.nextInt(5)
             context.system.scheduler.scheduleOnce(d.seconds, self, SaySomething)
