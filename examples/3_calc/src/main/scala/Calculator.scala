@@ -38,6 +38,6 @@ trait CalcParser extends JavaTokenParsers {
 object Calculator extends App with CalcParser {
   parseAll(sum, args.mkString) match {
     case Success(e, _) => println("Result: " + e.eval)
-    case fail: NoSuccess    => println("Parsing failed: " + fail.msg)
+    case fail: NoSuccess => println("Parsing failed: " + fail.msg)
   }
 }

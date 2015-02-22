@@ -23,6 +23,6 @@ object FileParser extends App with CSVParser {
   val str = Source.fromFile(args.head).mkString
   parseAll(file, str) match {
     case Success(result, _) => result foreach (l => println(l.mkString("\t")))
-    case fail: NoSuccess    => println("Parsing failed" + fail.msg)
+    case fail: NoSuccess => println("Parsing failed" + fail.msg)
   }
 }

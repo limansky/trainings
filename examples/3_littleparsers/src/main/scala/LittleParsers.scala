@@ -1,7 +1,7 @@
 import scala.language.implicitConversions
 
 trait LittleParsers {
-  
+
   type Reader = List[Char]
 
   sealed abstract class Result[+T]
@@ -12,7 +12,7 @@ trait LittleParsers {
 
   trait Parser[+T] extends (Reader => Result[T]) { p =>
 
-    def ~[U](u: => Parser[U]): Parser[T~U] = new Parser[T~U] {
+    def ~[U](u: => Parser[U]): Parser[T ~ U] = new Parser[T ~ U] {
       def apply(r: Reader) = p(r) match {
         case Good(x, r1) => u(r1) match {
           case Good(y, r2) => Good(new ~(x, y), r2)
@@ -42,7 +42,7 @@ trait LittleParsers {
   }
 
   def char(f: Char => Boolean): Parser[Char] = new Parser[Char] {
-    def apply(r: Reader) = r match { 
+    def apply(r: Reader) = r match {
       case x :: xs => if (f(x)) Good(x, xs) else Bad(s"Unexpected char '$x'", r)
       case Nil => Bad("Expected char, but got end of input", Nil)
     }
@@ -79,13 +79,13 @@ trait LittleParsers {
 
   def rep1sep[T, U](p: => Parser[T], u: => Parser[U]) =
     p ~ rep(u ~> p) ^^ { case x ~ xs => x :: xs }
-  
+
   def repsep[T, U](p: => Parser[T], u: => Parser[U]) =
-    rep1sep(p,u) | good(Nil)
+    rep1sep(p, u) | good(Nil)
 
   implicit def acceptChar(c: Char) = char(_ == c)
 
   implicit def acceptString(s: String): Parser[List[Char]] =
     s.map(c => acceptChar(c) ^^ (x => List(x)))
-     .reduceLeft(_ ~ _ ^^ { case x ~ y => x ++ y })
+      .reduceLeft(_ ~ _ ^^ { case x ~ y => x ++ y })
 }

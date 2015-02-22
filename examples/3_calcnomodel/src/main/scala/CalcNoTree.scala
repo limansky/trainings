@@ -14,6 +14,6 @@ trait SimpleCalc extends JavaTokenParsers {
 object CalcNoTree extends App with SimpleCalc {
   parseAll(sum, args.mkString) match {
     case Success(e, _) => println("Result: " + e)
-    case fail: NoSuccess    => println("Parsing failed: " + fail.msg)
+    case fail: NoSuccess => println("Parsing failed: " + fail.msg)
   }
 }
