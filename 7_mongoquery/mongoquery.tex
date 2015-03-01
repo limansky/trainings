@@ -1,0 +1,120 @@
+\documentclass[t]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{ccicons}
+
+\input{../common/setup.tex}
+
+\title{Compile time string interpolation}
+
+\author{Mikhail Limanskiy}
+
+\institute{SymphonyTeleca}
+
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{MongoDB}
+MongoDB is a document oriented database.
+
+It stores JSON documents in the collections.
+\begin{lstlisting}
+db.people.insert({ name: "John Doe", age: 42 })
+db.people.insert({ 
+    name: "William Smith",
+    age: 28,
+    phone: [ "1234567", "7654321" ]
+    })
+db.people.insert({
+    name: "Alice White",
+    age: 29,
+    address: {
+        country: "UK",
+        city: "London"
+    }
+})
+db.people.insert({ name : "Ivan Petrov", age : 28 })
+\end{lstlisting}
+
+And it also uses JSON as a query language:
+\begin{lstlisting}
+db.people.find({ name: "John Doe"})
+db.people.find({ age: { $lt : 30 }})
+db.people.find({ phone: { $not: { $size : 0 } } })
+db.people.aggregate([{ $group : { _id : "$age", count : {$sum : 1} } },
+                     { $sort : { count : -1 } },
+                     { $limit : 5 }
+  ])
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Queries in Scala}
+Casbah is a MongoDB interface for Scala.  It can build DBObjects:
+
+\begin{lstlisting}
+val name = "John Doe"
+
+val a = people.findOne(MongoDBObject("name" -> name))
+
+val b = people.find(MongoDBObject("age" -> MongoDBObject("$lt" -> 30)))
+
+// Using Casbah DSL
+val c = people.find("age" $lt 30)
+
+val d = people.find(MongoDBObject("phone" -> MongoDBObject(
+                    "$not" -> MongoDBObject("$size" -> 0))
+        ))
+
+val e = people.aggregate(List(
+  MongoDBObject("$group" ->
+    MongoDBObject("_id" -> "$age", "count" -> MongoDBObject("$sum" -> 1))),
+  MongoDBObject("$sort" -> MongoDBObject("count" -> -1)),
+  MongoDBObject("$limit" -> 5)))
+\end{lstlisting}
+
+ReactiveMongo is another Scala MongoDB driver built on top of Akka.  It provides
+non-blocking reactive API:
+
+\begin{lstlisting}
+// Future[BSONDocument]
+val a = people.find(BSONDocument("name" -> "John Doe")).one[BSONDocument]
+
+// Future[List[Person]]
+val b = people.find(BSONDocument("age" -> BSONDocument("$lt" -> 30)))
+              .cursor[Person].collect[List]()
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{MongoQuery}
+MongoQuery provides string interpolators for building MongoDB objects.  It makes
+queryes more compact and allows to make some compile time checks.
+
+\begin{lstlisting}
+import com.github.limansky.mongoquery.casbah._
+
+val name = "John Doe"
+
+val a = people.findOne(mq"{ name : $name }")
+
+val b = people.find(mq"{age : { $$lt : 30 } }")
+
+val d = people.find(mq"{ phone : { $$not : { $$size : 0 }}}")
+
+val e = people.aggregate(List(
+  mq"""{ $$group : { _id : "$age", count : { $$sum : 1 }}}""",
+  mq"{ $$sort : { count : -1 }}",
+  mq"{ $$limit : 5}"))
+\end{lstlisting}
+
+\end{frame}
+
+\input{../common/theend.tex}
+
+\end{document}
