@@ -3,7 +3,7 @@
 all: scala.pdf
 
 scala.pdf: scala.tex ../common/*.tex
-	latexmk -pdf -pdflatex="pdflatex -interactive=nonstopmode" -use-make scala.tex
+	latexmk -pdf -pdflatex="pdflatex -interactive=nonstopmode" -use-make $<
 
 clean:
 	latexmk -CA
