@@ -5,14 +5,10 @@ all: $(SUBDIRS)
 .PHONY: $(SUBDIRS)
 
 $(SUBDIRS):
-	make -C $@
+	$(MAKE) -C $@
 
 
 clean:
-	$(MAKE) -C 1_scala_intro clean
-	$(MAKE) -C 2_futures clean
-	$(MAKE) -C 3_more_scala clean
-	$(MAKE) -C 4_akka clean
-	$(MAKE) -C 5_reflection clean
-	$(MAKE) -C 6_testing clean
-	$(MAKE) -C 7_mongoquery clean
+	for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir clean; \
+	done
