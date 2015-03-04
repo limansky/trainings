@@ -8,6 +8,8 @@
     \titlepage
 \end{frame}
 
+\Section{About}
+
 \begin{frame}{About Akka}
 \href{http://www.akka.io}{Akka} is an open-source toolkit and runtime simplifying the construction of concurrent
 and distributed applications on the JVM. Akka supports multiple programming models
@@ -17,6 +19,8 @@ Akka is written in Scala, but provides bindings both for Scala and Java.\\~\\
 
 First public release 0.5 was announced in January of 2010. Current release 2.3.9 (January 2015).
 \end{frame}
+
+\Section{Actors}
 
 \begin{frame}{Actors Model}
 The Actor model adopts the philosophy that everything is an \emph{actor}.  In Akka all \linline{Actor}s
@@ -233,6 +237,8 @@ class PersonTest(aSystem: ActorSystem) extends TestKit(aSystem) with ImplicitSen
 \end{lstlisting}
 \end{frame}
 
+\section{Resilience}
+
 \begin{frame}[fragile]
 \frametitle{Death watch}
 Sometimes actors can fail, or stop. It is possible to notify one actor about another actor
@@ -257,7 +263,7 @@ depends on current supervisor strategy:
 \begin{enumerate}
 \item Resume. Subordinate continue running keeping it's state.
 \item Restart. Subordinate is restarted clearing out it's state.
-\item Stop. Subordintate is stopped permanently.
+\item Stop. Subordinate is stopped permanently.
 \item Escalate. Stops supervisor itself, pass error to parent.
 \end{enumerate}
 You can override supervision strategy in your actor:

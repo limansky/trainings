@@ -3,7 +3,8 @@ package webcache
 import scala.concurrent.ExecutionContextExecutor
 import spray.json.DefaultJsonProtocol
 import akka.http.model.StatusCodes
-import akka.stream.FlowMaterializer
+import akka.stream.ActorFlowMaterializer
+import akka.actor.ActorRef
 
 case class AddRequest(url: String, depth: Int)
 case class Resource(id: Int, url: String, cached: Long)
@@ -20,7 +21,9 @@ trait WebCacheRest {
   import JsonProtocol._
 
   implicit val executor: ExecutionContextExecutor
-  implicit val materializer: FlowMaterializer
+  implicit val materializer: ActorFlowMaterializer
+
+  val fetcher: ActorRef
 
   val route =
     path("resources") {
@@ -44,6 +47,7 @@ trait WebCacheRest {
         put {
           entity(as[AddRequest]) { r =>
             complete {
+              fetcher ! r
               ResourceManager.add(r.url, "")
             }
           }
