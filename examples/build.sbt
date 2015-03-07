@@ -21,6 +21,7 @@ lazy val akkaLibs = Seq(
 lazy val commonSettings = Seq(
   version := "0.1",
   scalaVersion := "2.11.5",
+  scalacOptions := Seq("-deprecation", "-unchecked", "-feature"),
   organization := "com.github.limansky"
 ) ++ scalariformSettings
 
