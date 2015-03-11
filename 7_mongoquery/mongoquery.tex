@@ -1,6 +1,6 @@
 \input{../common/setup.tex}
 
-\title{Compile time string interpolation}
+\title{Compile-time string interpolation}
 
 \begin{document}
 
@@ -98,11 +98,49 @@ val b = people.find(mq"{age : { $$lt : 30 } }")
 val d = people.find(mq"{ phone : { $$not : { $$size : 0 }}}")
 
 val e = people.aggregate(List(
-  mq"""{ $$group : { _id : "$age", count : { $$sum : 1 }}}""",
+  mq"""{ $$group : { _id : "$$age", count : { $$sum : 1 }}}""",
   mq"{ $$sort : { count : -1 }}",
   mq"{ $$limit : 5}"))
 \end{lstlisting}
 
+\end{frame}
+
+\begin{frame}
+\frametitle{Why to use string interpolation?}
+Pros
+\begin{itemize}
+\item You want to use existing language
+\end{itemize}
+Cons
+\begin{itemize}
+\item You need to parse language yourself
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{String interpolators in Scala}
+String interpolation converts into a corresponding method call on an instace of
+StringContext class.
+
+So, it is simple to define own interpolator:
+\begin{lstlisting}
+implicit class MongoHelper(val sc: StringContext) extends AnyVal {
+  def mq(args: Any*): DBObject = parseQuery(sc.parts, args)
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Puting it into macros}
+\begin{lstlisting}
+implicit class MongoHelper(val sc: StringContext) extends AnyVal {
+  def a(args: Any*): DBObject = macro MongoHelper.mq_impl
+}
+
+object MongoHelper {
+  def mq_impl(c: Context)(args: c.Expr[Any]*): c.Expr[DBObject] = ???
+}
+\end{lstlisting}
 \end{frame}
 
 \input{../common/theend.tex}
