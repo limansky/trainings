@@ -92,7 +92,7 @@ cats += "Olga" -> 7
 \begin{frame}[fragile]
 \frametitle{Classes, traits and objects}
 
-Scala has no static class members. But there are singleton objects. If object has a same name with a class it called companion object.
+Scala has no static class members. But there are singleton objects. If object has a same name with a class is called companion object.
 
 \begin{lstlisting}
 class Foo(val x: Int, y: String) {
@@ -180,7 +180,7 @@ Type parameters can have variance modifiers to specify inheriting behavior.
 \subsection{OOP features}
 
 \begin{frame}[fragile]
-\frametitle{Scala is OOP language}
+\frametitle{OOP example}
 
 \begin{lstlisting}
 abstract class Shape {
@@ -250,7 +250,7 @@ The reason is that \texttt{Int} value converted implicitly to \texttt{RichInt}.
 
 \begin{example}
 \begin{lstlisting}
-implicit class StrMix(val s: String) {
+implicit class StrMix(val s: String) extends AnyVal {
   def <||>(o: String): String =
     s.zip(o).map(t => t._1.toString + t._2.toString).mkString
 }

@@ -60,7 +60,11 @@ import scala.concurrent.duration._
 
 def getWeather(date: Date): Future[WeatherReport]
 
-val report = Await.result(getWeather(new Date), 10.seconds)
+val weatherFuture = getWeather(new Date)
+
+// Doing something else
+
+val report = Await.result(weatherFuture, 10.seconds)
 \end{lstlisting}
 \end{example}
 \end{frame}
@@ -296,6 +300,67 @@ int main(int argc, char* argv[]) {
 \end{frame}
 
 \section{Futures composition}
+
+\begin{frame}[fragile]
+\frametitle{For-comprehensions}
+In scala \linline{for} is an alternative way to call: \linline{map}, \linline{flatMap},
+\linline{foreach}, \linline{filter}.
+
+In many cases this syntax is more readable:
+\lstset{numbers=none}
+\begin{table}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular*}{0.9\textwidth}{ l l }
+\hline
+For comprehension & Functional \\ \hline
+
+\begin{lstlisting}
+for (i <- 1 to 5) {
+  println(i)
+}
+\end{lstlisting}
+&
+\begin{lstlisting}
+1 to 5 flatmap (i => println(i))
+\end{lstlisting}
+\\ \hline
+\begin{lstlisting}
+val a = for {
+  i <- list
+} yield i.toString
+\end{lstlisting}
+&
+\begin{lstlisting}
+val a = list.map(_.toString)
+\end{lstlisting}
+\\ \hline
+\begin{lstlisting}
+val a = for {
+  i <- list1
+  j <- list2
+} yield i*j
+\end{lstlisting}
+&
+\begin{lstlisting}
+val a = list1.flatMap(i =>
+  list2.map(_ * i))
+\end{lstlisting}
+\\ \hline
+\begin{lstlisting}
+val a = for {
+  i <- list if (i % 2 == 0)
+} yield i / 2
+\end{lstlisting}
+&
+\begin{lstlisting}
+val a = list.filter(_ %2 == 0).map(_ / 2)
+\end{lstlisting}
+\end{tabular*}
+\end{table}
+
+This syntax can be used not only with List, but also with other sequences,
+Options, and other any classes, which provides required methods.
+\end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Futures composition}
