@@ -31,27 +31,27 @@ trait WebCacheRest {
         ResourceManager.getResources
       }
     } ~
-      path("resource" / IntNumber) { id =>
-        get {
-          complete {
-            ResourceManager.getById(id)
-          }
-        } ~
-          delete {
-            complete {
-              if (ResourceManager.delete(id)) StatusCodes.NoContent else StatusCodes.NotFound
-            }
-          }
+    path("resource" / IntNumber) { id =>
+      get {
+        complete {
+          ResourceManager.getById(id)
+        }
       } ~
-      path("resource") {
-        put {
-          entity(as[AddRequest]) { r =>
-            complete {
-              fetcher ! r
-              ResourceManager.add(r.url, "")
-            }
+      delete {
+        complete {
+          if (ResourceManager.delete(id)) StatusCodes.NoContent else StatusCodes.NotFound
+        }
+      }
+    } ~
+    path("resource") {
+      put {
+        entity(as[AddRequest]) { r =>
+          complete {
+            fetcher ! r
+            ResourceManager.add(r.url, "")
           }
         }
       }
+    }
 
 }
