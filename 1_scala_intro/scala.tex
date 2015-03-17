@@ -426,7 +426,7 @@ List(1,2,4,15,7,28).filter(modN(4))
 
   val (beforeG, afterG) = names partition (_ <= "G")
 
-  def quickSort[T](l: List[T])(implicit org: Ordering[T]): List[T] = l match {
+  def quickSort[T](l: List[T])(implicit ord: Ordering[T]): List[T] = l match {
     case x :: xs => 
       val (l, h) = xs partition (v => ord.lteq(v, x))
       quickSort(l) ::: x :: quickSort(h)

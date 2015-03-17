@@ -50,6 +50,38 @@ trait Future[+T] extends Awaitable[T] {
 \end{frame}
 
 \begin{frame}[fragile]
+\frametitle{Partial functions}
+Partial function of type \linline{PartialFunction[A, B]} is an unary function
+where the domain is not necessarily include all values of type A.
+
+\linline{isDefinedAt} is used to check if a value is in the function domain.
+
+\begin{example}
+\begin{lstlisting}
+val pSqrt: PartialFunction[Int, Int] = {
+  case a if a >= 0 => math.sqrt(a).toInt
+}
+
+pSqrt.isDefinedAt(6) // true
+pSqrt.isDefinedAt(-6) // false
+pSqrt(4) // 2
+pSqrt(-4) // throws MatchError
+
+// List(1, 2, 4)
+List(1,4, -3, 16, -5) collect pSqrt
+
+pSqrt.lift(9) // Some(3)
+pSqrt.lift(-7) // None
+
+val twiceSqrt = pSqrt andThen (_ * 2)
+
+twiceSqrt(9) // 6
+\end{lstlisting}
+\end{example}
+
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{Waiting for the result}
 Sometimes you need to block current thread and wait for the future result.
 It can be achieved using \linline{Await.result} or \linline{Await.ready} method:
