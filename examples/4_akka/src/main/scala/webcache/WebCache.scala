@@ -3,20 +3,13 @@ package webcache
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.io.IO
-import akka.http.Http
-import akka.stream.ActorFlowMaterializer
-import akka.stream.scaladsl.Sink
+import spray.can.Http
 
-object WebCache extends App with WebCacheRest {
+object WebCache extends App {
 
-  implicit val system = ActorSystem("adserver")
-  override implicit val materializer = ActorFlowMaterializer()
-  override implicit val executor = system.dispatcher
+  implicit val system = ActorSystem("webcache")
 
-  val fetcher = system.actorOf(Props(new Fetcher(Props[Worker])))
+  val service = system.actorOf(Props[WebCacheRestActor])
 
-  //FIXME: Workaround https://github.com/akka/akka/issues/16972 is fixed
-  Http().bind(interface = "0.0.0.0", port = 8080).to(Sink.foreach {
-    conn => conn.flow.join(route).run()
-  }).run
+  IO(Http) ! Http.Bind(service, interface = "0.0.0.0", port = 8080)
 }

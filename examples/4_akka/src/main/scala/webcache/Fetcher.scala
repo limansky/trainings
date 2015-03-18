@@ -3,8 +3,8 @@ package webcache
 import akka.actor.Actor
 import akka.actor.Props
 import akka.actor.ActorRef
-import akka.http.model.Uri
 import scala.util.Try
+import spray.http.Uri
 
 class Fetcher(workerProps: Props) extends Actor {
 
@@ -13,7 +13,7 @@ class Fetcher(workerProps: Props) extends Actor {
   def receive = {
     case r @ AddRequest(u, _) =>
       getFetcher(u) map (_ ! r)
-      
+
     case Done(h) =>
       workers -= h
   }

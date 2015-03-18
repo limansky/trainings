@@ -2,9 +2,10 @@ package webcache
 
 import scala.concurrent.ExecutionContextExecutor
 import spray.json.DefaultJsonProtocol
-import akka.http.model.StatusCodes
-import akka.stream.ActorFlowMaterializer
-import akka.actor.ActorRef
+import akka.actor.{ Actor, ActorRef, Props }
+import spray.routing.HttpService
+import spray.httpx.SprayJsonSupport
+import spray.http.StatusCodes
 
 case class AddRequest(url: String, depth: Int)
 case class Resource(id: Int, url: String, cached: Long)
@@ -14,14 +15,19 @@ object JsonProtocol extends DefaultJsonProtocol {
   implicit val addFormat = jsonFormat2(AddRequest.apply)
 }
 
-trait WebCacheRest {
+class WebCacheRestActor extends Actor with WebCacheRest {
 
-  import akka.http.server.Directives._
-  import akka.http.marshallers.sprayjson.SprayJsonSupport._
+  override val fetcher = context.actorOf(Props(new Fetcher(Props[Worker])))
+
+  override def actorRefFactory = context
+
+  override def receive = runRoute(route)
+}
+
+trait WebCacheRest extends HttpService {
+
   import JsonProtocol._
-
-  implicit val executor: ExecutionContextExecutor
-  implicit val materializer: ActorFlowMaterializer
+  import SprayJsonSupport._
 
   val fetcher: ActorRef
 
@@ -31,27 +37,27 @@ trait WebCacheRest {
         ResourceManager.getResources
       }
     } ~
-    path("resource" / IntNumber) { id =>
-      get {
-        complete {
-          ResourceManager.getById(id)
-        }
-      } ~
-      delete {
-        complete {
-          if (ResourceManager.delete(id)) StatusCodes.NoContent else StatusCodes.NotFound
-        }
-      }
-    } ~
-    path("resource") {
-      put {
-        entity(as[AddRequest]) { r =>
+      path("resource" / IntNumber) { id =>
+        get {
           complete {
-            fetcher ! r
-            ResourceManager.add(r.url, "")
+            ResourceManager.getById(id)
+          }
+        } ~
+          delete {
+            complete {
+              if (ResourceManager.delete(id)) StatusCodes.NoContent else StatusCodes.NotFound
+            }
+          }
+      } ~
+      path("resource") {
+        put {
+          entity(as[AddRequest]) { r =>
+            complete {
+              fetcher ! r
+              ResourceManager.add(r.url, "")
+            }
           }
         }
       }
-    }
 
 }

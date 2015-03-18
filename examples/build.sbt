@@ -2,14 +2,15 @@ scalaVersion := "2.11.6"
 
 lazy val akkaVersion = "2.3.9"
 
-lazy val akkaStreamVersion = "1.0-M4"
+lazy val sprayVersion = "1.3.2"
 
 lazy val parsersLib = "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
 
 lazy val akkaLibs = Seq(
   "com.typesafe.akka"         %% "akka-actor"                         % akkaVersion,
-  "com.typesafe.akka"         %% "akka-http-experimental"             % akkaStreamVersion,
-  "com.typesafe.akka"         %% "akka-http-spray-json-experimental"  % akkaStreamVersion,
+  "io.spray"                  %% "spray-routing"                      % sprayVersion,
+  "io.spray"                  %% "spray-client"                       % sprayVersion,
+  "io.spray"                  %% "spray-json"                         % "1.3.1",
   "com.typesafe.slick"        %% "slick"                              % "2.1.0",
   "com.h2database"            %  "h2"                                 % "1.4.185",
   "ch.qos.logback"            %  "logback-classic"                    % "1.1.2",
