@@ -229,15 +229,15 @@ def firstResultOf[T](futures: List[Future[T]]): Future[T] = {
   p.future
 }
 \end{lstlisting}
-If we are intrested only in success result:
+If we are interested only in success result:
 \begin{lstlisting}
 def firstSuccessOf[T](futures: Future[T]...): Future[T] = {
   val p = Promise[T]()
-  left = futures.size
+  var left = futures.size
   futures.foreach(_ on Complete {
     case Success(v) => p.trySuccess(v)
     case Failure(e) =>
-      if (left == 0) p.tryFailure(e)
+      if (left == 1) p.tryFailure(e)
       left -= 1
   }
   p.future
@@ -335,7 +335,7 @@ int main(int argc, char* argv[]) {
 
 \begin{frame}[fragile]
 \frametitle{For-comprehensions}
-In scala \linline{for} is an alternative way to call: \linline{map}, \linline{flatMap},
+In Scala \linline{for} is an alternative way to call: \linline{map}, \linline{flatMap},
 \linline{foreach}, \linline{filter}.
 
 In many cases this syntax is more readable:
@@ -353,7 +353,7 @@ for (i <- 1 to 5) {
 \end{lstlisting}
 &
 \begin{lstlisting}
-1 to 5 flatmap (i => println(i))
+1 to 5 foreach (i => println(i))
 \end{lstlisting}
 \\ \hline
 \begin{lstlisting}
@@ -397,7 +397,7 @@ Options, and other any classes, which provides required methods.
 \begin{frame}[fragile]
 \frametitle{Futures composition}
 \linline{Future} is a monad. You can use \linline{map}, \linline{flatMap}, \linline{filter}, etc to
-compose \linline{Future}s together. Since these functions are aveailable you can also use for-comprehensions.
+compose \linline{Future}s together. Since these functions are available you can also use for-comprehensions.
 \begin{lstlisting}
 def getPageSize(url: String): Future[Int] = getPage(url).map(_.length)
 
@@ -468,7 +468,7 @@ def getMultipart(link: String): Future[Array[Byte]] = {
 \begin{frame}[fragile]
 \frametitle{Multipart fetcher, part 2}
 Now it's possible to fetch a file using multipart fetcher, but if it fails make attempt to use
-regular GET requiest.
+regular GET request.
 \begin{lstlisting}[name=multifetch]
 args.toList match {
   case link :: Nil =>
