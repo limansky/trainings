@@ -26,8 +26,7 @@ class WebCacheRestActor extends Actor with WebCacheRest {
 
 trait WebCacheRest extends HttpService {
 
-  import JsonProtocol._
-  import SprayJsonSupport._
+  import JsonProtocol._, SprayJsonSupport._
 
   val fetcher: ActorRef
 

@@ -324,7 +324,7 @@ val c = for {
 
 \begin{frame}[fragile]
 \frametitle{Network IO}
-Akka IO package was developed in collaboration between Akka and \href{http://spray.io}{spray.io} teams. 
+Akka IO package was developed in collaboration between Akka and \href{http://spray.io}{spray.io} teams.
 It's completely actor based. Every IO driver has a special actor called \emph{manager}:
 \linline{val manager = IO(Tcp)}.
 
@@ -425,6 +425,222 @@ akka {
   }
 }
 \end{lstlisting}
+\end{frame}
+
+\section{Other features overview}
+
+\begin{frame}
+\frametitle{Akka cluster}
+Akka cluster provides a following features to run Akka program on cluster:
+
+\begin{itemize}
+\item Gossip protocols to monitor nodes lifecycle.
+\item Failure detector.
+\item Routed actors partitioning.
+\end{itemize}
+
+Currently Akka Cluster is still under development.  Not implemented yet features are:
+
+\begin{itemize}
+\item Actor partitioning
+\item Actor handoff
+\item Actor rebalancing
+\item Stateful actor replication
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Persistence}
+Akka persistence enables stateful actors to persist their internal state and recover it
+when actor is started, restarted, or migrated in a cluster.
+
+It allows to replay whole event log, or restore from snapshot and replay part of the log.
+\end{frame}
+
+\section{Example application}
+
+\begin{frame}
+\frametitle{Complete example application}
+Let's write a small REST server which will cache requested web pages.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Define JSON model}
+These classes describes requests and responses of the server:
+
+\begin{lstlisting}
+case class AddRequest(url: String, depth: Int)
+case class Resource(id: Int, url: String, cached: Long)
+\end{lstlisting}
+
+Now we need to create implicit JSON marshallers and unmarshallers:
+
+\begin{lstlisting}
+object JsonProtocol extends DefaultJsonProtocol {
+  implicit val resourceFormat = jsonFormat3(Resource.apply)
+  implicit val addFormat = jsonFormat2(AddRequest.apply)
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{ResourceManager}
+Let's use Slick to store and get the data in the database.  The implementation is out of
+scope of this training, but we can assume what it provides following API:
+
+\begin{lstlisting}
+object ResourceManager {
+  def getResources(): List[Resource]
+
+  def getById(id: Int): Option[Resource]
+
+  def delete(id: Int): Boolean
+
+  def add(u: String, f: String): Resource
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Define REST service}
+We will use Spray toolkit.  Let's define REST API using routing DSL.
+
+\begin{lstlisting}
+trait WebCacheRest extends HttpService {
+  import JsonProtocol._, SprayJsonSupport._
+
+  val fetcher: ActorRef
+  val route =
+    path("resources") {
+      complete { ResourceManager.getResources }
+    } ~
+    path("resource" / IntNumber) { id =>
+      get {
+        complete { ResourceManager.getById(id) }
+      } ~
+      delete {
+        complete {
+          if (ResourceManager.delete(id)) StatusCodes.NoContent
+            else StatusCodes.NotFound
+        }
+      }
+    } ~
+    path("resource") {
+      put {
+        entity(as[AddRequest]) { r =>
+          complete {
+            fetcher ! r
+            ResourceManager.add(r.url, "")
+          }
+        }
+      }
+    }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{REST Actor}
+Now we can create actor class:
+
+\begin{lstlisting}
+class WebCacheRestActor extends Actor with WebCacheRest {
+  override val fetcher = context.actorOf(Props(new Fetcher(Props[Worker])))
+  override def actorRefFactory = context
+  override def receive = runRoute(route)
+}
+\end{lstlisting}
+
+And code to start it:
+
+\begin{lstlisting}
+object WebCache extends App {
+  implicit val system = ActorSystem("webcache")
+
+  val service = system.actorOf(Props[WebCacheRestActor])
+
+  IO(Http) ! Http.Bind(service, interface = "0.0.0.0", port = 8080)
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Fetcher implementation}
+Fetcher actor manages workers.
+\begin{lstlisting}
+class Fetcher(workerProps: Props) extends Actor {
+
+  var workers = Map.empty[String, ActorRef]
+
+  def receive = {
+    case r @ AddRequest(u, _) =>
+      getWorker(u) map (_ ! r)
+
+    case Done(h) =>
+      workers -= h
+  }
+
+  def getWorker(u: String): Option[ActorRef] = {
+    Try(Uri(u)).toOption.flatMap { uri =>
+      val addr = uri.withPath(Uri.Path.Empty).toString()
+      if (addr.nonEmpty) {
+        val f = workers.getOrElse(addr, context.actorOf(workerProps))
+        workers += addr -> f
+        Some(f)
+      } else {
+        None
+      }
+    }
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Worker implementation}
+\begin{lstlisting}
+class Worker(base: String) extends Actor {
+  import context.dispatcher
+  import spray.client.pipelining._
+
+  def receive = {
+    case r: AddRequest =>
+      queue.enqueue(r)
+      fetchPage(r)
+  }
+
+  def fetchPage(r: AddRequest): Unit = {
+    val uri = Uri(r.url).resolvedAgainst(baseUri)
+    val content = pipeline(Get(uri))
+
+    if (r.depth > 0) {
+      content onSuccess { case c =>
+        val reqs = getLinks(c) map (l => AddRequest(l, r.depth - 1))
+        reqs foreach queue.enqueue
+      }
+    }
+  }
+
+  def getLinks(c: String): List[String] = {
+    val r = """<a\s[^h]*href\s*=\s*("[^"]+"|'[^']+'|[^ ]+)[^>]*>""".r
+    (for {
+      r(u) <- r findAllIn c
+      if u.startsWith("http")
+    } yield u).toList
+  }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Bibliography}
+\begin{thebibliography}{00}
+\bibitem{scala}Martin Odersky, Lex Spoon, Bill Venners:
+\emph{Programming in Scala},
+Artima, 2nd edition, 2011
+
+\bibitem{akka}\emph{Akka documentation}, \url{http://doc.akka.io/docs/akka/2.3.9/scala.html}
+
+\bibitem{spray}\emph{Spray documentation}, \url{http://spray.io/documentation/1.2.2/}
+\end{thebibliography}
 \end{frame}
 
 \input{../common/theend.tex}

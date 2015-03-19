@@ -12,15 +12,15 @@ class Fetcher(workerProps: Props) extends Actor {
 
   def receive = {
     case r @ AddRequest(u, _) =>
-      getFetcher(u) map (_ ! r)
+      getWorker(u) map (_ ! r)
 
     case Done(h) =>
       workers -= h
   }
 
-  def getFetcher(u: String): Option[ActorRef] = {
+  def getWorker(u: String): Option[ActorRef] = {
     Try(Uri(u)).toOption.flatMap { uri =>
-      val addr = uri.authority.host.address
+      val addr = uri.withPath(Uri.Path.Empty).toString()
       if (addr.nonEmpty) {
         val f = workers.getOrElse(addr, context.actorOf(workerProps))
         workers += addr -> f
