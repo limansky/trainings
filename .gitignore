@@ -9,3 +9,4 @@ target/
 *.vrb
 *.fls
 *.fdb_latexmk
+date.tex
