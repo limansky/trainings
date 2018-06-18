@@ -27,13 +27,17 @@
 
 \begin{frame}{History}
 
-\begin{itemize}
+\begin{itemize}[<+->]
   \item 2001 - The design of Scala started at the École Polytechnique Fédérale de Lausanne (EPFL) by Martin Odersky.
   \item 2003 - First release.
   \item 2006 - Scala 2.0 release.
   \item 2010 - Scala 2.8 release. New collection framework.
   \item 2013 - Scala 2.10 release. Futures and promises. Akka actors now main actors implementation.
   \item 2014 - Scala 2.11 release. Reflection, macros and quasiquotes.
+  \item 2016 - Scala 2.12 release. Better Java 8 support, SAM types.
+  \item 2018 - Scala 2.13 release (M4 now). New collections.
+  \item 2019 - Scala 2.14 release.
+  \item 2019 - Scala 3 aka Dotty.
 \end{itemize}
 \end{frame}
 
@@ -118,6 +122,45 @@ trait B
 trait C
 
 class D extends A with B with C
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Multiple inheritance in Scala. Linearization}
+
+\begin{tikzpicture}
+
+\umlclass[type=abstract]{Base}{
+  def foo: String
+}{}
+\umlclass[below=1cm of Base,anchor=north]{A}{}{}
+\umlinherit{A}{Base}
+\umlclass{B}{}{}
+\umlinherit{B}{Base}
+\umlclass{Foo}{}{}
+\umlinherit{Foo}{A}
+\umlinherit{Foo}{B}
+
+\end{tikzpicture}
+
+\pause
+
+\begin{lstlisting}
+trait Base {
+ def foo: String
+}
+
+trait A extends Base {
+  override def foo: String = "A"
+}
+
+trait B extends Base {
+  override def foo: String = "B"
+}
+
+class Foo extends A with B |\pause|
+class Bar extends B with A
 \end{lstlisting}
 
 \end{frame}
