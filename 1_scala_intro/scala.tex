@@ -2,6 +2,10 @@
 
 \usepackage{tikz}
 \usepackage{tikz-uml}
+\usetikzlibrary{positioning}
+
+\usetheme{metropolis}
+%\usetheme{ofd}
 
 \title{Introduction to Scala}
 
@@ -15,12 +19,16 @@
 
 \begin{frame}{About}
 
-\begin{itemize}
+\begin{itemize}[<+->]
   \item Scala = SCAlable + LAnguage
 
   \item Scala is an object-functional programming and scripting language for general software applications, statically typed, designed to concisely express solutions in an elegant, type-safe and lightweight (low ceremonial) manner.
 
   \item Scala compiles into Java byte code and runs on JVM. It compatible with existing Java libraries (but of course you should prefer use native Scala libraries).
+
+  \item Scala also can be compiled into JavaScript and run in browser or Node.js platform.
+
+  \item And it also possible to compile Scala to native code.
 \end{itemize}
 
 \end{frame}
@@ -69,32 +77,38 @@ object Hello extends App {
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Variables}
-Scala has two types of variables:
-\begin{itemize}
-  \item Values. Defined using val keyword. Can not be changed.
-  \item Variables. Defined using var keyword. Can be reassigned.
-\end{itemize}
-
-\begin{example}
+\frametitle{Variables and their types}
+\begin{center}
+\begin{tabular}[t]{l | c | c | c}
+Name & Definition & Reassignment & Computation \\
+\hline
+Value & \texttt{val} & No & Immediatelly \\ \pause
+Variable & \texttt{var} & Yes & Immediatelly \\ \pause
+Lazy value & \texttt{lazy val} & No & First using \\ \pause
+Definition & \texttt{def} & No & Each time
+\end{tabular}
+\end{center}
+\pause
 \begin{lstlisting}
-// List[Int]
-val catsCount: List[Int] = List(1, 2, 3, 15)
-
-// List[String] 
-val names = List("John", "Bob", "Semen", "Pekka")
-
-// scala.collection.immutable.Map[String,Int]
-var cats = names.zip(catsCount).toMap
-
-cats += "Olga" -> 7
+// Long
+val a = System.currentTimeMillis
+// a = 10: compile error
+|\pause|
+lazy var b = System.currentTimeMillis
+b = 10
+|\pause|
+def c = System.currentTimeMillis
+|\pause|
+lazy val d = System.currentTimeMillis
+println(s"a=$a b=$b c=$c d=$d")
+Thread.sleep(1000)
+println(s"a=$a b=$b c=$c d=$d")
 \end{lstlisting}
-\end{example}
 
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Classes, traits and objects}
+\frametitle{Classes, objects, and traits}
 
 Scala has no static class members. But there are singleton objects. If object has a same name with a class is called companion object.
 
@@ -104,23 +118,40 @@ class Foo(val x: Int, y: String) {
 }
 
 object Foo {
-  def apply(s: String) = new Foo(1, s)
+  def fromString(s: String) = new Foo(1, s)
+|\onslide<2->|
+  def apply(n: Int) = new Foo(n, "") |\onslide<1->|
 }
 
 val a = new Foo(5, "test")
-val b = Foo("buzz")
+val b = Foo.fromString("buzz")
 
 // prints "tsetzzub"
-println(a.r + b.r)
+println(a.r + b.r) |\onslide<2->|
+
+val c = Foo(42)
 \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Classes, objects, and traits}
 
 There traits in Scala instead of Java interfaces. Traits can contain fields and abstract and concrete methods. Classes can be inherited from on class and several traits.
 
 \begin{lstlisting}
-class A
-trait B
-trait C
-
+abstract class A(a: Int) {
+  def callMe(a: String): Unit
+}
+|\pause|
+trait B {
+  def foo: Int
+}
+|\pause|
+trait C {
+  def bar: String = "Let's go to the bar"
+}
+|\pause|
 class D extends A with B with C
 \end{lstlisting}
 
@@ -129,22 +160,31 @@ class D extends A with B with C
 \begin{frame}[fragile]
 \frametitle{Multiple inheritance in Scala. Linearization}
 
+\begin{columns}
+  \begin{column}{0.48\textwidth}
+
 \begin{tikzpicture}
 
 \umlclass[type=abstract]{Base}{
   def foo: String
 }{}
-\umlclass[below=1cm of Base,anchor=north]{A}{}{}
-\umlinherit{A}{Base}
-\umlclass{B}{}{}
-\umlinherit{B}{Base}
-\umlclass{Foo}{}{}
-\umlinherit{Foo}{A}
-\umlinherit{Foo}{B}
+\umlclass[below left=0.8cm and -0.8cm of Base]{A}{
+  def foo = "A"
+}{}
+\umlinherit[anchor1=90, anchor2=-125]{A}{Base}
+\umlclass[below right=0.8cm and -0.8cm of Base]{B}{
+  def foo = "B"
+}{}
+\umlinherit[anchor1=90, anchor2=-50]{B}{Base}
+\umlclass[below=3cm of Base]{Foo}{}{}
+\umlinherit[anchor2=-90]{Foo}{A}
+\umlinherit[anchor2=-90]{Foo}{B}
 
 \end{tikzpicture}
-
 \pause
+
+  \end{column}
+  \begin{column}{0.48\textwidth}
 
 \begin{lstlisting}
 trait Base {
@@ -159,9 +199,17 @@ trait B extends Base {
   override def foo: String = "B"
 }
 
-class Foo extends A with B |\pause|
-class Bar extends B with A
+class Foo extends A with B // foo == "B"
+|\pause|
+class Bar extends B with A // foo == "A"
+|\pause|
+class Baz extends A with B {
+  override def foo = super[A].foo + super[B].foo
+}
 \end{lstlisting}
+
+  \end{column}
+\end{columns}
 
 \end{frame}
 
@@ -186,6 +234,7 @@ class FooHolder[A <: Foo](val a: A)
 class FooParentHolder[A >: Foo](val a: A)
 \end{lstlisting}
 
+\pause
 Functions can be parameterized as well
 
 \begin{lstlisting}
@@ -498,12 +547,12 @@ sealed abstract class Option[+A] {
   def getOrElse[B >: A](default: => B): B =
     if (isEmpty) default else this.get
 }
-
+|\pause|
 case class Some[+A] extends Option[A] {
   def isEmpty = false
   def get = x
 }
-
+|\pause|
 case class None extends Option[Nothing] {
   def isEmpty = true
   def get = throw new NoSuchElementException("None.get")
@@ -523,6 +572,8 @@ object DB {
 }
 \end{lstlisting}
 
+\pause
+
 \begin{columns}[t]
 \begin{column}{0.5\textwidth}
 \begin{lstlisting}
@@ -537,6 +588,7 @@ def getPhoneByUser(user: String) = {
   }
 }
 \end{lstlisting}
+\pause
 \end{column}
 \begin{column}{0.5\textwidth}
 \begin{lstlisting}
@@ -596,6 +648,70 @@ def sendFile(file: String, addr: InternetAddress, subject: String): Boolean =
 
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{For comprehensions}
+\begin{columns}[t]
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}
+(1 to 10).foreach(i => println("i = " + i))
+\end{lstlisting}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}
+for {
+  i <- 1 to 10
+} {
+  println("i = " + i)
+}
+\end{lstlisting}
+\end{column}
+\end{columns}
+
+\pause
+
+\begin{columns}[t]
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}
+val a = List("orange", "apple", "pear")
+val lengths = a.map(_.length)
+\end{lstlisting}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}
+val a = List("orange", "apple", "pear")
+val lengths = for {
+  x <- a
+} yield x.length
+\end{lstlisting}
+\end{column}
+\end{columns}
+
+\pause
+
+\begin{columns}[t]
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}
+def getPhoneCodeByUser(user: String) =
+  DB.getEmail(user)
+    .flatMap(DB.getName)
+    .flatMap(DB.getPhone)
+    .map(_.substring(0,3))
+\end{lstlisting}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}
+def getPhoneCodeByUser(user: String) =
+  for {
+    email <- DB.getEmail(user)
+    name <- DB.getName(email)
+    phone <- DB.getPhone(name)
+  } yield phone.substring(0,3)
+\end{lstlisting}
+\end{column}
+\end{columns}
+
+\end{frame}
+
 \section{Tools and libraries}
 
 \begin{frame}{Scala tools and libraries}
@@ -603,12 +719,11 @@ There are lot of useful tools and libraries for Scala:
 \begin{itemize}
 \item \href{http://www.scala-lang.org}{Scala home} -- Scala language home site
 \item \href{http://www.scala-sbt.org}{sbt} -- build tool for Scala, Java and more
-\item \href{http://www.scala-ide.org}{Scala IDE} -- Eclipse based IDE for Scala
 \item \href{http://www.akka.io}{Akka} -- actor toolkit
+\item \href{http://spark.apache.org}{Spark} -- big data analytics engine
 \item \href{http://www.playframework.com}{Play Framework} -- web framework
 \item \href{http://www.liftweb.net}{Lift} -- web framework
 \item \href{http://slick.typesafe.com}{Slick} -- database query and access library
-\item \href{http://squeryl.org}{Squeryl} -- ORM and query DSL
 \item \href{http://www.scalastyle.org/}{ScalaStyle} -- static code analyzer
 \item \href{http://www.scalatest.org}{ScalaTest} -- unit test framework
 \item \href{http://www.scalacheck.org}{ScalaCheck} -- property-based testing library
